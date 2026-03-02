@@ -162,3 +162,52 @@ export const DEMO_NOTIFICATIONS = [
     unread: false,
   },
 ];
+
+export const DEMO_ISSUES = [
+  {
+    id: 201,
+    number: 105,
+    title: "bug: Chart crashes on mobile Safari",
+    url: "#",
+    repoFullName: "acme/frontend",
+    state: "open",
+    createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
+    updatedAt: new Date(Date.now() - 3600000 * 2).toISOString(),
+    labels: ["bug", "P1"],
+    commentCount: 4,
+    author: "designer42",
+    linkedPRs: [
+      { number: 421, title: "fix: crash on mobile Safari chart render", url: "#", state: "OPEN", isDraft: false },
+    ],
+  },
+  {
+    id: 202,
+    number: 88,
+    title: "feat: Support dark mode in email templates",
+    url: "#",
+    repoFullName: "acme/mailer",
+    state: "open",
+    createdAt: new Date(Date.now() - 86400000 * 7).toISOString(),
+    updatedAt: new Date(Date.now() - 86400000).toISOString(),
+    labels: ["enhancement"],
+    commentCount: 1,
+    author: "pm-lead",
+    linkedPRs: [
+      { number: 90, title: "feat: dark mode email templates (WIP)", url: "#", state: "OPEN", isDraft: true },
+    ],
+  },
+  {
+    id: 203,
+    number: 42,
+    title: "docs: Update API migration guide for v3",
+    url: "#",
+    repoFullName: "acme/docs",
+    state: "open",
+    createdAt: new Date(Date.now() - 86400000 * 14).toISOString(),
+    updatedAt: new Date(Date.now() - 86400000 * 2).toISOString(),
+    labels: ["documentation"],
+    commentCount: 0,
+    author: "tech-writer",
+    linkedPRs: [],
+  },
+];

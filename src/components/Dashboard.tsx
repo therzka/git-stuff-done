@@ -8,21 +8,23 @@ import { Panel, Group as PanelGroup, Separator as PanelResizeHandle } from 'reac
 import RawWorkLog from './RawWorkLog';
 import TodoList from './TodoList';
 import MyPRs from './MyPRs';
+import MyIssues from './MyIssues';
 import GitHubNotifications from './GitHubNotifications';
 import SummaryModal from './SummaryModal';
 import CalendarPicker from './CalendarPicker';
 import { GITHUB_ORG } from '@/lib/constants';
 
-type PanelId = 'log' | 'todos' | 'prs' | 'notifs';
+type PanelId = 'log' | 'todos' | 'prs' | 'issues' | 'notifs';
 type LayoutMode = 'grid' | 'column';
 
 const PANEL_LABELS: Record<PanelId, string> = {
   log: '📝 Work Log',
   todos: '✅ TODOs',
   prs: '🔀 My PRs',
+  issues: '🐛 My Issues',
   notifs: '🔔 Notifications',
 };
-const ALL_PANELS: PanelId[] = ['log', 'todos', 'prs', 'notifs'];
+const ALL_PANELS: PanelId[] = ['log', 'todos', 'prs', 'issues', 'notifs'];
 
 function loadLayout(): LayoutMode {
   if (typeof window === 'undefined') return 'grid';
@@ -367,6 +369,7 @@ export default function Dashboard() {
       case 'log': return panelCard(id, <RawWorkLog date={date} isDemo={isDemo} onRegisterInsert={(fn) => { insertAtCursorRef.current = fn; }} />);
       case 'todos': return panelCard(id, <TodoList date={date} isDemo={isDemo} />);
       case 'prs': return panelCard(id, <MyPRs isDemo={isDemo} onInsert={(text) => insertAtCursorRef.current?.(text)} />);
+      case 'issues': return panelCard(id, <MyIssues isDemo={isDemo} onInsert={(text) => insertAtCursorRef.current?.(text)} />);
       case 'notifs': return panelCard(id, <GitHubNotifications refreshTrigger={notifsKey} isDemo={isDemo} onInsert={(text) => insertAtCursorRef.current?.(text)} />);
     }
   }
@@ -399,7 +402,7 @@ export default function Dashboard() {
 
     // Grid layout: left column (log, todos), right column (prs, notifs)
     const leftPanels = (['log', 'todos'] as PanelId[]).filter((id) => visiblePanels.has(id));
-    const rightPanels = (['prs', 'notifs'] as PanelId[]).filter((id) => visiblePanels.has(id));
+    const rightPanels = (['prs', 'issues', 'notifs'] as PanelId[]).filter((id) => visiblePanels.has(id));
 
     // If one side is empty, show only the other
     if (leftPanels.length === 0 && rightPanels.length > 0) {

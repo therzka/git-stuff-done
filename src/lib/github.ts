@@ -398,6 +398,149 @@ export async function fetchMyPRs(): Promise<MyPullRequest[]> {
   return prs;
 }
 
+// --- My Issues ---
+
+export type MyIssue = {
+  id: number;
+  number: number;
+  title: string;
+  url: string;
+  repoFullName: string;
+  state: string;
+  createdAt: string;
+  updatedAt: string;
+  labels: string[];
+  commentCount: number;
+  author: string;
+  linkedPRs: {
+    number: number;
+    title: string;
+    url: string;
+    state: string;
+    isDraft: boolean;
+  }[];
+};
+
+export async function fetchMyIssues(): Promise<MyIssue[]> {
+  const octokit = await getOctokit();
+  const config = await readConfig();
+  const { data: userData } = await octokit.users.getAuthenticated();
+  const user = userData.login;
+
+  const res = await octokit.search.issuesAndPullRequests({
+    q: `is:issue is:open assignee:${user} org:${GITHUB_ORG}`,
+    sort: "updated",
+    order: "desc",
+    per_page: 30,
+  });
+
+  const issues: MyIssue[] = res.data.items
+    .filter((item) => {
+      const repo = item.repository_url.split("/").pop() ?? "";
+      return !config.ignoredRepos.includes(repo);
+    })
+    .map((item) => {
+      const urlParts = item.repository_url.split("/");
+      const owner = urlParts[urlParts.length - 2];
+      const repo = urlParts[urlParts.length - 1];
+      return {
+        id: item.id,
+        number: item.number,
+        title: item.title,
+        url: item.html_url,
+        repoFullName: `${owner}/${repo}`,
+        state: item.state,
+        createdAt: item.created_at,
+        updatedAt: item.updated_at,
+        labels: (item.labels as Array<{ name?: string }>)
+          .map((l) => l.name ?? "")
+          .filter(Boolean),
+        commentCount: item.comments,
+        author: item.user?.login ?? "",
+        linkedPRs: [],
+      };
+    });
+
+  // Batch-fetch linked PRs via GraphQL (timelineItems cross-references)
+  try {
+    const grouped = new Map<
+      string,
+      { owner: string; repo: string; numbers: number[] }
+    >();
+    for (const issue of issues) {
+      const key = issue.repoFullName;
+      if (!grouped.has(key)) {
+        const [owner, repo] = key.split("/");
+        grouped.set(key, { owner, repo, numbers: [] });
+      }
+      grouped.get(key)!.numbers.push(issue.number);
+    }
+
+    const fragments: string[] = [];
+    const issueKeyMap: string[] = [];
+    let idx = 0;
+    for (const [, { owner, repo, numbers }] of grouped) {
+      for (const num of numbers) {
+        const alias = `issue${idx}`;
+        fragments.push(
+          `${alias}: repository(owner: "${owner}", name: "${repo}") { issue(number: ${num}) { timelineItems(itemTypes: [CROSS_REFERENCED_EVENT], last: 10) { nodes { ... on CrossReferencedEvent { source { __typename ... on PullRequest { number title url state isDraft } } } } } } }`,
+        );
+        issueKeyMap.push(`${owner}/${repo}#${num}`);
+        idx++;
+      }
+    }
+
+    if (fragments.length > 0) {
+      const query = `query { ${fragments.join("\n")} }`;
+      type LinkedPR = {
+        number: number;
+        title: string;
+        url: string;
+        state: string;
+        isDraft: boolean;
+      };
+      type GraphQLIssue = {
+        issue: {
+          timelineItems: {
+            nodes: {
+              source?: { __typename: string } & Partial<LinkedPR>;
+            }[];
+          };
+        };
+      };
+      const result = await octokit.graphql<Record<string, GraphQLIssue>>(query);
+
+      for (let i = 0; i < issueKeyMap.length; i++) {
+        const alias = `issue${i}`;
+        const key = issueKeyMap[i];
+        const [repoFullName, numStr] = key.split("#");
+        const num = parseInt(numStr, 10);
+        const issueObj = issues.find(
+          (iss) => iss.repoFullName === repoFullName && iss.number === num,
+        );
+        if (!issueObj) continue;
+        const nodes = result[alias]?.issue?.timelineItems?.nodes ?? [];
+        issueObj.linkedPRs = nodes
+          .filter((n) => n.source?.__typename === "PullRequest")
+          .map((n) => {
+            const pr = n.source as LinkedPR;
+            return {
+              number: pr.number,
+              title: pr.title,
+              url: pr.url,
+              state: pr.state,
+              isDraft: pr.isDraft,
+            };
+          });
+      }
+    }
+  } catch {
+    /* degrade gracefully */
+  }
+
+  return issues;
+}
+
 // --- Notifications ---
 
 export type GitHubNotification = {
