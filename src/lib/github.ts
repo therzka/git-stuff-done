@@ -160,6 +160,8 @@ export type MyPullRequest = {
   ciStatus: "success" | "failure" | "pending" | null;
   unresolvedThreads: number;
   mergeQueueState: "queued" | "merging" | null;
+  authorLogin: string;
+  isAssignee: boolean;
 };
 
 export async function fetchMyPRs(): Promise<MyPullRequest[]> {
@@ -239,6 +241,8 @@ export async function fetchMyPRs(): Promise<MyPullRequest[]> {
           ciStatus: null as MyPullRequest["ciStatus"],
           unresolvedThreads: 0,
           mergeQueueState: null as MyPullRequest["mergeQueueState"],
+          authorLogin: item.user?.login ?? "",
+          isAssignee: item.assignees?.some((a) => a.login === user) ?? false,
         };
       }),
   );

@@ -106,6 +106,8 @@ export const DEMO_PRS = [
     ciStatus: "success",
     unresolvedThreads: 0,
     mergeQueueState: "merging" as const,
+    authorLogin: "user",
+    isAssignee: false,
   },
   {
     id: 102,
@@ -123,6 +125,8 @@ export const DEMO_PRS = [
     ciStatus: "failure",
     unresolvedThreads: 2,
     mergeQueueState: null,
+    authorLogin: "Copilot",
+    isAssignee: true,
   },
 ];
 

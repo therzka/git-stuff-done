@@ -43,3 +43,6 @@ next-env.d.ts
 # personal configuration
 .github/agents/
 out/
+
+# copilot debug logs
+copilot-debug-logs-*
