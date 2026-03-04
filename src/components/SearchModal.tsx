@@ -1,0 +1,241 @@
+'use client';
+
+import { useEffect, useState, useRef } from 'react';
+
+const MODELS = [
+  { label: 'GPT 5.2', value: 'gpt-5.2' },
+  { label: 'GPT 4.1', value: 'gpt-4.1' },
+  { label: 'Claude 4.6 Sonnet', value: 'claude-sonnet-4.6' },
+];
+
+interface SearchModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  isDemo?: boolean;
+}
+
+export default function SearchModal({ isOpen, onClose, isDemo = false }: SearchModalProps) {
+  const [query, setQuery] = useState('');
+  const [selectedModel, setSelectedModel] = useState(MODELS[0].value);
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [daysSearched, setDaysSearched] = useState(0);
+  const [exhausted, setExhausted] = useState(false);
+  const [canContinue, setCanContinue] = useState(false);
+  const abortRef = useRef<AbortController | null>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') handleClose();
+    };
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  function todayISO() {
+    return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+  }
+
+  const handleSearch = async (offsetDays = 0) => {
+    if (!query.trim()) return;
+
+    setLoading(true);
+    setError(null);
+    setCanContinue(false);
+    if (offsetDays === 0) {
+      setResult(null);
+      setDaysSearched(0);
+      setExhausted(false);
+    }
+
+    if (isDemo) {
+      setTimeout(() => {
+        setResult("## Demo Search Result\n\nThis is a simulated search result. In a real environment, this would search through your work logs using AI.\n\n**Found in logs from 2026-03-01:**\n- Worked on authentication refactor\n- Fixed CI pipeline issues");
+        setDaysSearched(7);
+        setLoading(false);
+      }, 1500);
+      return;
+    }
+
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    try {
+      const res = await fetch('/api/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query: query.trim(),
+          model: selectedModel,
+          todayDate: todayISO(),
+          offsetDays,
+        }),
+        signal: controller.signal,
+      });
+
+      if (!res.ok) throw new Error('Search failed');
+      const data = await res.json();
+
+      setDaysSearched(data.daysSearched);
+      setExhausted(data.exhausted);
+
+      if (data.answer) {
+        setResult(data.answer);
+        setCanContinue(false);
+      } else {
+        // No answer yet but more history available
+        setCanContinue(true);
+        setResult(null);
+      }
+    } catch (err) {
+      if ((err as Error).name !== 'AbortError') {
+        setError('An error occurred while searching. Please try again.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleClose = () => {
+    abortRef.current?.abort();
+    setQuery('');
+    setResult(null);
+    setError(null);
+    setDaysSearched(0);
+    setExhausted(false);
+    setCanContinue(false);
+    setLoading(false);
+    onClose();
+  };
+
+  const showLongSearchWarning = daysSearched > 60;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4" onMouseDown={(e) => { if (panelRef.current && !panelRef.current.contains(e.target as Node)) handleClose(); }}>
+      <div ref={panelRef} className="w-full max-w-2xl rounded-2xl bg-popover shadow-xl ring-1 ring-border max-h-[90vh] flex flex-col overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-border px-6 py-4 bg-popover/50 backdrop-blur-sm sticky top-0 z-10">
+          <h2 className="text-lg font-semibold text-popover-foreground">Search Work Logs</h2>
+          <button onClick={handleClose} className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded-md hover:bg-muted">✕</button>
+        </div>
+
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+          {/* Query input */}
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wider">Question</label>
+            <textarea
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey && !loading) {
+                  e.preventDefault();
+                  handleSearch(0);
+                }
+              }}
+              className="w-full h-20 rounded-xl border border-input bg-muted/50 px-3 py-2 text-sm text-foreground placeholder-muted-foreground outline-none focus:border-primary focus:ring-2 focus:ring-ring/20 resize-none transition-all"
+              placeholder="Ask a question about your work logs... (e.g. &quot;What did I work on last week?&quot;)"
+              disabled={loading}
+            />
+          </div>
+
+          {/* Model selector */}
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wider">AI Model</label>
+            <select
+              value={selectedModel}
+              onChange={(e) => setSelectedModel(e.target.value)}
+              disabled={loading}
+              className="w-full rounded-xl border border-input bg-muted/50 px-3 py-2 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-ring/20 transition-all cursor-pointer"
+            >
+              {MODELS.map((m) => (
+                <option key={m.value} value={m.value}>{m.label}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Loading / Progress */}
+          {loading && (
+            <div className="flex items-center gap-3 p-4 rounded-xl bg-muted/50 border border-border">
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              <span className="text-sm text-muted-foreground">
+                Searching{daysSearched > 0 ? ` (looked back ${daysSearched} days so far)` : ''}...
+              </span>
+            </div>
+          )}
+
+          {/* Long search warning */}
+          {showLongSearchWarning && !exhausted && (
+            <div className="text-sm text-amber-600 bg-amber-50 dark:bg-amber-900/20 dark:text-amber-400 p-3 rounded-xl border border-amber-100 dark:border-amber-900/50 flex items-center gap-2">
+              <span>⏳</span> Searching far back in history — this may take a while.
+            </div>
+          )}
+
+          {/* Continue searching prompt */}
+          {canContinue && !loading && (
+            <div className="p-4 rounded-xl bg-muted/50 border border-border space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Searched the last {daysSearched} days but couldn&apos;t find a clear answer. Want to keep looking further back?
+              </p>
+              <button
+                onClick={() => handleSearch(daysSearched)}
+                className="rounded-xl bg-accent px-4 py-2 text-sm font-medium text-accent-foreground transition hover:opacity-80"
+              >
+                Keep Searching
+              </button>
+            </div>
+          )}
+
+          {/* Result */}
+          {result && (
+            <div className="mt-2 pt-4 border-t border-border">
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-xs font-medium text-muted-foreground uppercase tracking-wider">Answer</label>
+                <span className="text-[10px] text-muted-foreground">
+                  Searched {daysSearched} days
+                </span>
+              </div>
+              <div className="rounded-xl border border-input bg-muted px-4 py-3 text-sm text-foreground whitespace-pre-wrap font-mono">
+                {result}
+              </div>
+            </div>
+          )}
+
+          {/* Error */}
+          {error && (
+            <div className="text-sm text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400 p-4 rounded-xl border border-red-100 dark:border-red-900/50 flex items-center gap-2">
+              <span>⚠️</span> {error}
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="border-t border-border px-6 py-4 flex justify-between items-center bg-popover/80 backdrop-blur-sm sticky bottom-0 z-10">
+          <div className="flex gap-2">
+            {result && (
+              <button
+                onClick={() => navigator.clipboard.writeText(result)}
+                className="rounded-xl px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:shadow-sm border border-transparent hover:border-border transition-all"
+              >
+                Copy
+              </button>
+            )}
+          </div>
+          <button
+            onClick={() => handleSearch(0)}
+            disabled={loading || !query.trim()}
+            className="rounded-xl bg-gradient-to-r from-primary to-accent-foreground px-6 py-2.5 text-sm font-semibold text-primary-foreground shadow-md shadow-primary/20 transition-all hover:shadow-lg hover:shadow-primary/30 hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none"
+          >
+            {loading ? 'Searching...' : '🔍 Search'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

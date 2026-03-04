@@ -11,6 +11,7 @@ import MyPRs from './MyPRs';
 import MyIssues from './MyIssues';
 import GitHubNotifications from './GitHubNotifications';
 import SummaryModal from './SummaryModal';
+import SearchModal from './SearchModal';
 import CalendarPicker from './CalendarPicker';
 import { GITHUB_ORG } from '@/lib/constants';
 
@@ -53,6 +54,7 @@ export default function Dashboard() {
   const [commitMsg, setCommitMsg] = useState<string | null>(null);
   const [date, setDate] = useState(todayISO);
   const [showSummary, setShowSummary] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
   const insertAtCursorRef = useRef<((text: string) => void) | null>(null);
 
   // Layout & panel visibility
@@ -243,6 +245,14 @@ export default function Dashboard() {
             📊
           </button>
           <button
+            onClick={() => setShowSearch(true)}
+            className="rounded-lg px-2 py-1.5 text-sm text-muted-foreground transition hover:bg-accent hover:text-accent-foreground"
+            aria-label="Search"
+            title="Search Work Logs"
+          >
+            🔍
+          </button>
+          <button
             onClick={() => setShowSettings((s) => !s)}
             className="rounded-lg px-2 py-1.5 text-sm text-muted-foreground transition hover:bg-accent hover:text-accent-foreground"
             aria-label="Settings"
@@ -304,6 +314,12 @@ export default function Dashboard() {
         isOpen={showSummary}
         onClose={() => setShowSummary(false)}
         defaultDate={date}
+        isDemo={isDemo}
+      />
+
+      <SearchModal
+        isOpen={showSearch}
+        onClose={() => setShowSearch(false)}
         isDemo={isDemo}
       />
 
