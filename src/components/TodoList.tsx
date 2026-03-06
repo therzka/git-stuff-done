@@ -272,7 +272,7 @@ export default function TodoList({ date, isDemo = false }: { date?: string, isDe
                 ) : (
                   <span
                     onDoubleClick={() => !todo.done && startEdit(todo)}
-                    className={`flex-1 cursor-text text-sm ${todo.done ? "line-through text-muted-foreground opacity-50" : ""}`}
+                    className={`flex-1 min-w-0 cursor-text text-sm break-words ${todo.done ? "line-through text-muted-foreground opacity-50" : ""}`}
                     title="Double-click to edit"
                   >
                     <LinkifiedText text={todo.title} className="text-foreground" />

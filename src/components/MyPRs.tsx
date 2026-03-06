@@ -132,7 +132,7 @@ export default function MyPRs({
                         )
                       }
                       title="Insert link at cursor"
-                      className="mt-0.5 shrink-0 opacity-0 group-hover:opacity-100 rounded p-0.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
+                      className="mt-0.5 shrink-0 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 rounded p-0.5 text-muted-foreground hover:text-foreground hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none transition-all"
                     >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
