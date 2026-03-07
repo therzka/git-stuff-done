@@ -225,6 +225,7 @@ export default function TodoList({ date, isDemo = false }: { date?: string, isDe
                 </button>
                 <button
                   onClick={() => dismissSuggestion(s)}
+                  aria-label="Dismiss suggestion"
                   className="text-muted-foreground hover:text-destructive transition-colors opacity-0 group-hover:opacity-100"
                 >
                   ✕
@@ -253,7 +254,7 @@ export default function TodoList({ date, isDemo = false }: { date?: string, isDe
                   type="checkbox"
                   checked={todo.done}
                   onChange={() => toggleTodo(todo.id, !todo.done)}
-                  className="h-4 w-4 shrink-0 accent-primary rounded border-input"
+                  className="h-5 w-5 shrink-0 accent-primary rounded border-input"
                 />
                 
                 {editingId === todo.id ? (
