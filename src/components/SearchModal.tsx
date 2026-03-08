@@ -27,6 +27,7 @@ export default function SearchModal({ isOpen, onClose, isDemo = false }: SearchM
   const [daysSearched, setDaysSearched] = useState(0);
   const [exhausted, setExhausted] = useState(false);
   const [canContinue, setCanContinue] = useState(false);
+  const [searchMode, setSearchMode] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const demoInitRef = useRef(false);
@@ -68,6 +69,7 @@ export default function SearchModal({ isOpen, onClose, isDemo = false }: SearchM
       setResult(null);
       setDaysSearched(0);
       setExhausted(false);
+      setSearchMode(null);
     }
 
     if (isDemo) {
@@ -101,13 +103,15 @@ export default function SearchModal({ isOpen, onClose, isDemo = false }: SearchM
 
       setDaysSearched(data.daysSearched);
       setExhausted(data.exhausted);
+      setSearchMode(data.searchMode ?? null);
 
       if (data.answer) {
         setResult(data.answer);
+        // Only allow continuation for recent_first mode
         setCanContinue(false);
       } else {
-        // No answer yet but more history available
-        setCanContinue(true);
+        // No answer yet — only offer "Keep Searching" for recent_first mode
+        setCanContinue(data.searchMode === 'recent_first' && !data.exhausted);
         setResult(null);
       }
     } catch (err) {
@@ -127,6 +131,7 @@ export default function SearchModal({ isOpen, onClose, isDemo = false }: SearchM
     setDaysSearched(0);
     setExhausted(false);
     setCanContinue(false);
+    setSearchMode(null);
     setLoading(false);
     onClose();
   };
@@ -182,7 +187,11 @@ export default function SearchModal({ isOpen, onClose, isDemo = false }: SearchM
             <div className="flex items-center gap-3 p-4 rounded-xl bg-muted/50 border border-border">
               <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
               <span className="text-sm text-muted-foreground">
-                Searching{daysSearched > 0 ? ` (looked back ${daysSearched} days so far)` : ''}...
+                {searchMode === 'exhaustive'
+                  ? 'Searching all logs...'
+                  : searchMode === 'date_bounded'
+                    ? 'Searching specified date range...'
+                    : `Searching${daysSearched > 0 ? ` (looked back ${daysSearched} days so far)` : ''}...`}
               </span>
             </div>
           )}

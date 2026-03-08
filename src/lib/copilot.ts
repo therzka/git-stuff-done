@@ -29,14 +29,15 @@ function applyLinkification(
 export async function callCopilot(
   systemPrompt: string, 
   userPrompt: string, 
-  model: string = MODEL
+  model: string = MODEL,
+  timeout?: number,
 ): Promise<string> {
   const client = new CopilotClient();
   try {
     const session = await client.createSession({ model });
     // Send system context first, then user message
-    await session.sendAndWait({ prompt: systemPrompt });
-    const response = await session.sendAndWait({ prompt: userPrompt });
+    await session.sendAndWait({ prompt: systemPrompt }, timeout);
+    const response = await session.sendAndWait({ prompt: userPrompt }, timeout);
     return response?.data?.content ?? '';
   } finally {
     await client.stop();

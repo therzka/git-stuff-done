@@ -1,6 +1,72 @@
 import { readLog, readRichLog } from './files';
 import { extractGitHubUrls, fetchLinkInfo, getOctokit, parseGitHubUrl } from './github';
 import { GITHUB_ORG } from './constants';
+import { callCopilot } from './copilot';
+
+export type SearchMode = 'exhaustive' | 'date_bounded' | 'recent_first';
+
+export type QueryClassification = {
+  mode: SearchMode;
+  startDate?: string;
+  endDate?: string;
+};
+
+/**
+ * Classify a search query to determine the optimal search strategy.
+ * Uses a lightweight AI call to detect whether the query asks for
+ * exhaustive results, a specific date range, or recent-first lookup.
+ */
+export async function classifySearchQuery(
+  query: string,
+  todayDate: string,
+  model: string = 'gpt-4.1',
+): Promise<QueryClassification> {
+  const prompt = `You are a query classifier. Given a user question about their work logs, classify the search intent.
+
+Today's date is ${todayDate}.
+
+Respond with ONLY a JSON object (no markdown, no code fences) in this exact format:
+{"mode": "<mode>", "startDate": "<YYYY-MM-DD or null>", "endDate": "<YYYY-MM-DD or null>"}
+
+Modes:
+- "exhaustive": The user wants ALL instances/examples across their entire history. Keywords: "all", "every time", "each time", "how many times", "list all", "find all", "all examples", "all instances", "whenever".
+- "date_bounded": The user specifies a time range. Resolve relative dates to absolute dates using today's date. Examples: "last week", "last two weeks", "in February", "since January", "this month", "yesterday".
+- "recent_first": The user wants the most recent match or general info without a specific range. This is the DEFAULT if unclear. Examples: "when did I last...", "what am I working on", "what happened with X".
+
+Examples:
+Q: "find all examples of pairing sessions" → {"mode": "exhaustive", "startDate": null, "endDate": null}
+Q: "what did I work on last week" → {"mode": "date_bounded", "startDate": "...", "endDate": "..."}
+Q: "every time I mentioned the auth migration" → {"mode": "exhaustive", "startDate": null, "endDate": null}
+Q: "when did I last meet with Sarah" → {"mode": "recent_first", "startDate": null, "endDate": null}
+Q: "find when I discussed X in the last two weeks" → {"mode": "date_bounded", "startDate": "...", "endDate": "..."}
+
+User question: "${query}"`;
+
+  try {
+    const result = await callCopilot(
+      'You are a JSON classifier. Output only valid JSON, nothing else.',
+      prompt,
+      model,
+    );
+
+    const cleaned = result.trim().replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '');
+    const parsed = JSON.parse(cleaned);
+
+    const mode: SearchMode =
+      parsed.mode === 'exhaustive' || parsed.mode === 'date_bounded'
+        ? parsed.mode
+        : 'recent_first';
+
+    return {
+      mode,
+      startDate: parsed.startDate && parsed.startDate !== 'null' ? parsed.startDate : undefined,
+      endDate: parsed.endDate && parsed.endDate !== 'null' ? parsed.endDate : undefined,
+    };
+  } catch {
+    // If classification fails, fall back to the default recent-first strategy
+    return { mode: 'recent_first' };
+  }
+}
 
 /**
  * Load work logs for a date range, returning an array of `## YYYY-MM-DD\n\ncontent` strings.
