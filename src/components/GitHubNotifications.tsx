@@ -123,7 +123,7 @@ export default function GitHubNotifications({ isDemo = false, onInsert, refreshT
     <div className="flex h-full flex-col rounded-xl text-foreground">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
-        <h2 className="text-base font-semibold text-amber-500 flex items-center gap-2">
+        <h2 className="text-base font-semibold text-primary flex items-center gap-2">
           <Bell className="h-4 w-4" aria-hidden="true" />
           Notifications
         </h2>
