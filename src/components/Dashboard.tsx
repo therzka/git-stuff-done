@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import { useTheme } from 'next-themes';
 import { useSearchParams } from 'next/navigation';
 import { Panel, Group as PanelGroup, Separator as PanelResizeHandle } from 'react-resizable-panels';
+import { Upload, Moon, Sun, BarChart2, Search, Settings, LayoutGrid, AlignJustify, Menu, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import RawWorkLog from './RawWorkLog';
 import TodoList from './TodoList';
 import MyPRs from './MyPRs';
@@ -19,11 +20,11 @@ type PanelId = 'log' | 'todos' | 'prs' | 'issues' | 'notifs';
 type LayoutMode = 'grid' | 'column';
 
 const PANEL_LABELS: Record<PanelId, string> = {
-  log: '📝 Work Log',
-  todos: '✅ TODOs',
-  prs: '🔀 My PRs',
-  issues: '🐛 My Issues',
-  notifs: '🔔 Notifications',
+  log: 'Work Log',
+  todos: 'TODOs',
+  prs: 'My PRs',
+  issues: 'My Issues',
+  notifs: 'Notifications',
 };
 const ALL_PANELS: PanelId[] = ['log', 'todos', 'prs', 'issues', 'notifs'];
 
@@ -185,30 +186,35 @@ export default function Dashboard() {
   return (
     <div className="flex h-screen flex-col bg-background text-foreground transition-colors duration-300">
       {/* Header */}
-      <header className="flex shrink-0 flex-wrap items-center justify-between gap-y-2 border-b border-border bg-card/70 backdrop-blur-sm px-4 py-2 sm:px-6 sm:py-3">
+      <header className="shrink-0 border-b border-border bg-card px-4 py-2 sm:px-6 sm:py-3 grid grid-cols-[1fr_auto_1fr] items-center gap-x-2">
         <div className="flex items-center gap-3">
-          <span className="text-base font-bold tracking-tight bg-gradient-to-r from-primary to-pink-400 bg-clip-text text-transparent sm:text-lg">✨ git stuff done</span>
+          <span
+            className="text-base font-black tracking-tight sm:text-xl select-none"
+            style={{ background: 'linear-gradient(90deg, #a855f7, #ec4899, #f97316, #eab308, #22c55e, #3b82f6, #a855f7)', backgroundSize: '200% auto', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', animation: 'logo-shimmer 4s linear infinite' }}
+          >
+            git stuff done
+          </span>
           {isDemo && (
             <span className="rounded-full bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 text-[10px] font-bold text-amber-500 uppercase tracking-wide">
               Demo Mode
             </span>
           )}
         </div>
-        <div className="flex items-center gap-1 sm:gap-2 order-3 sm:order-none w-full justify-center sm:w-auto">
+        <div className="flex items-center gap-1 sm:gap-2 justify-center">
           <button
             onClick={() => shiftDate(-1)}
             aria-label="Previous day"
-            className="rounded-lg px-2 py-1 text-sm text-muted-foreground transition hover:bg-accent hover:text-accent-foreground"
+            className="rounded-lg p-1.5 text-muted-foreground transition hover:bg-accent hover:text-accent-foreground"
           >
-            ←
+            <ChevronLeft className="h-4 w-4" aria-hidden="true" />
           </button>
           <CalendarPicker date={date} onChange={setDate} />
           <button
             onClick={() => shiftDate(1)}
             aria-label="Next day"
-            className={`rounded-lg px-2 py-1 text-sm text-muted-foreground transition hover:bg-accent hover:text-accent-foreground ${isToday ? 'invisible' : ''}`}
+            className={`rounded-lg p-1.5 text-muted-foreground transition hover:bg-accent hover:text-accent-foreground ${isToday ? 'invisible' : ''}`}
           >
-            →
+            <ChevronRight className="h-4 w-4" aria-hidden="true" />
           </button>
           <button
             onClick={() => setDate(todayISO())}
@@ -217,9 +223,9 @@ export default function Dashboard() {
             Today
           </button>
         </div>
-        <div className="flex items-center gap-1 sm:gap-3">
+        <div className="flex items-center gap-1 sm:gap-3 justify-end">
           {commitMsg && (
-            <span className="text-xs text-emerald-500 font-medium">{commitMsg}</span>
+            <span className="text-xs text-primary font-medium">{commitMsg}</span>
           )}
           <button
             onClick={handleCommit}
@@ -227,14 +233,14 @@ export default function Dashboard() {
             title={isDemo ? 'Disabled in demo mode' : 'Push to GitHub'}
             className="rounded-xl bg-primary px-2.5 py-1.5 text-xs font-semibold text-primary-foreground shadow-sm transition hover:opacity-90 disabled:opacity-50 sm:px-4 sm:text-sm"
           >
-            {committing ? '…' : <><span className="sm:hidden">🚀</span><span className="hidden sm:inline">🚀 Commit &amp; Push</span></>}
+            {committing ? '…' : <><Upload className="h-3.5 w-3.5 sm:hidden" aria-hidden="true" /><span className="hidden sm:inline">Commit &amp; Push</span></>}
           </button>
           <button
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
             className="rounded-lg px-2 py-1.5 text-sm text-muted-foreground transition hover:bg-accent hover:text-accent-foreground"
             aria-label="Toggle Theme"
           >
-            {mounted ? (theme === 'dark' ? '🌙' : '☀️') : '…'}
+            {mounted ? (theme === 'dark' ? <Moon className="h-4 w-4" aria-hidden="true" /> : <Sun className="h-4 w-4" aria-hidden="true" />) : <span className="h-4 w-4 inline-block" />}
           </button>
           <button
             onClick={() => setShowSummary(true)}
@@ -242,7 +248,7 @@ export default function Dashboard() {
             aria-label="Summarize"
             title="Generate Summary"
           >
-            📊
+            <BarChart2 className="h-4 w-4" aria-hidden="true" />
           </button>
           <button
             onClick={() => setShowSearch(true)}
@@ -250,14 +256,14 @@ export default function Dashboard() {
             aria-label="Search"
             title="Search Work Logs"
           >
-            🔍
+            <Search className="h-4 w-4" aria-hidden="true" />
           </button>
           <button
             onClick={() => setShowSettings((s) => !s)}
             className="rounded-lg px-2 py-1.5 text-sm text-muted-foreground transition hover:bg-accent hover:text-accent-foreground"
             aria-label="Settings"
           >
-            ⚙️
+            <Settings className="h-4 w-4" aria-hidden="true" />
           </button>
           <button
             onClick={toggleLayout}
@@ -265,7 +271,7 @@ export default function Dashboard() {
             aria-label="Toggle layout"
             title={layout === 'grid' ? 'Switch to column layout' : 'Switch to grid layout'}
           >
-            {layout === 'grid' ? '▤' : '▥'}
+            {layout === 'grid' ? <LayoutGrid className="h-4 w-4" aria-hidden="true" /> : <AlignJustify className="h-4 w-4" aria-hidden="true" />}
           </button>
           <button
             ref={panelMenuBtnRef}
@@ -280,7 +286,7 @@ export default function Dashboard() {
             aria-label="Toggle panels"
             title="Show/hide panels"
           >
-            ☰
+            <Menu className="h-4 w-4" aria-hidden="true" />
           </button>
         </div>
       </header>
@@ -325,7 +331,7 @@ export default function Dashboard() {
 
       {/* Settings panel */}
       {showSettings && (
-        <div className="border-b border-border bg-card/80 backdrop-blur-sm px-6 py-4">
+        <div className="border-b border-border bg-card px-6 py-4">
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-sm font-semibold text-foreground">Ignored Repos <span className="text-muted-foreground font-normal">(in {GITHUB_ORG} org)</span></h3>
             <button onClick={() => setShowSettings(false)} className="text-xs text-muted-foreground hover:text-foreground">Close</button>
@@ -347,7 +353,7 @@ export default function Dashboard() {
               {ignoredRepos.map((repo) => (
                 <span key={repo} className="inline-flex items-center gap-1 rounded-full bg-secondary border border-border px-3 py-1 text-xs text-secondary-foreground font-medium">
                   {repo}
-                  <button onClick={() => removeIgnoredRepo(repo)} className="text-muted-foreground hover:text-foreground">✕</button>
+                  <button onClick={() => removeIgnoredRepo(repo)} className="text-muted-foreground hover:text-foreground"><X className="h-3 w-3" aria-hidden="true" /></button>
                 </span>
               ))}
             </div>
@@ -369,11 +375,11 @@ export default function Dashboard() {
           aria-label={`Hide ${PANEL_LABELS[id]}`}
           title={`Hide ${PANEL_LABELS[id]}`}
         >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
             <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
           </svg>
         </button>
-        <div className="h-full overflow-auto rounded-2xl border border-border bg-card/50 backdrop-blur-sm p-4 shadow-sm transition-colors">
+        <div className="h-full overflow-hidden rounded-2xl border border-border bg-card panel-enter panel-shadow transition-colors">
           {children}
         </div>
       </div>
@@ -396,7 +402,7 @@ export default function Dashboard() {
     if (visible.length === 0) {
       return (
         <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
-          All panels hidden — use <button onClick={() => setPanelMenuOpen(true)} className="mx-1 underline hover:text-foreground">☰</button> to show them
+          All panels hidden — use <button onClick={() => setPanelMenuOpen(true)} className="mx-1 inline-flex items-center gap-0.5 underline hover:text-foreground"><Menu className="h-3.5 w-3.5" aria-hidden="true" /></button> to show them
         </div>
       );
     }

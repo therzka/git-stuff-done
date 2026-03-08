@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { FileText, Link2 } from 'lucide-react';
 import TiptapEditor, { type TiptapEditorHandle } from './TiptapEditor';
 import { DEMO_LOG_CONTENT, DEMO_RICH_LOG_CONTENT } from '@/lib/demo';
 
@@ -124,9 +125,10 @@ export default function RawWorkLog({ date, isDemo = false, onRegisterInsert }: R
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center justify-between px-3 py-2 border-b border-border">
-        <span className="text-sm font-semibold text-primary">
-          📝 {currentDate}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+        <span className="text-base font-semibold text-primary flex items-center gap-2">
+          <FileText className="h-4 w-4" aria-hidden="true" />
+          {currentDate}
         </span>
         <div className="flex items-center gap-2">
           {status !== 'idle' && (
@@ -138,9 +140,10 @@ export default function RawWorkLog({ date, isDemo = false, onRegisterInsert }: R
             onClick={handleLinkify}
             disabled={linkifying || !content.trim()}
             title="Resolve GitHub links to their issue and PR titles"
-            className="rounded-lg bg-accent px-2.5 py-1 text-xs font-semibold text-accent-foreground transition hover:opacity-80 disabled:opacity-40"
+            className="flex items-center gap-1.5 rounded-lg bg-accent px-2.5 py-1 text-xs font-semibold text-accent-foreground transition hover:opacity-80 disabled:opacity-40"
           >
-            {linkifying ? '🪄 Linkifying…' : '🪄 Linkify'}
+            <Link2 className="h-3.5 w-3.5" aria-hidden="true" />
+            {linkifying ? 'Linkifying…' : 'Linkify'}
           </button>
         </div>
       </div>

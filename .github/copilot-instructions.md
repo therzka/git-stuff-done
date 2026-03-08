@@ -24,5 +24,12 @@ This is git-stuff-done — a personal daily work log dashboard built with Next.j
 - Layout (grid/column) and panel visibility are persisted to localStorage (`gsd-layout`, `gsd-visible-panels`)
 - Auto-switches to column layout on narrow viewports (<1024px)
 
+## Dependency Management
+- Local dev environment: **Node 25 / npm 11** (`node -v` → v25.x, `npm -v` → 11.x)
+- CI uses Node 22 + upgrades npm to latest before running `npm ci` (both `deploy.yml` and `demo.yml`)
+- **Always commit `package-lock.json`** after any `npm install`, `npm remove`, or `npm update` — CI runs `npm ci` which will fail if the lock file is stale or missing entries
+- Never use `--no-package-lock`; the lock file must always reflect the current dependency tree
+- If CI fails with "npm ci can only install packages when package.json and package-lock.json are in sync", re-run `npm install` locally and commit the updated lock file
+
 ## Custom Instructions
 - Always update the README.md file when you add or modify features to keep the documentation in sync with the code.

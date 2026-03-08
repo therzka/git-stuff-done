@@ -22,13 +22,19 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
+      - run: npm install -g npm@latest
       - run: npm ci
 
       - name: Remove API routes (unused in demo)
         run: rm -rf src/app/api
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+        with:
+          static_site_generator: next
 
       - run: npm run build
         env:

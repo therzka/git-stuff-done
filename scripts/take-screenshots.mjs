@@ -90,7 +90,7 @@ async function main() {
   }
 
   // Close modal
-  const closeBtn = page.locator('button:has-text("✕")');
+  const closeBtn = page.locator('button[aria-label="Close"]');
   if (await closeBtn.count() > 0) {
     await closeBtn.first().click();
     await page.waitForTimeout(300);

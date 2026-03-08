@@ -37,71 +37,81 @@
 }
 
 :root {
-  /* Light Mode (Zinc/Pastel) */
-  --background: #faf5ff; /* violet-50ish */
-  --foreground: #18181b; /* zinc-900 */
+  /* Light Mode — warm mauve/plum surfaces, deep eggplant primary */
+  --background: oklch(97% 0.012 316);   /* Barely-there warm mauve */
+  --foreground: oklch(17% 0.025 316);   /* Near-black with warm purple undertone */
 
-  --card: #ffffff;
-  --card-foreground: #18181b;
+  --card: oklch(100% 0.003 316);        /* Clean white, barely-there tint */
+  --card-foreground: oklch(17% 0.025 316);
 
-  --popover: #ffffff;
-  --popover-foreground: #18181b;
+  --popover: oklch(100% 0.003 316);
+  --popover-foreground: oklch(17% 0.025 316);
 
-  --primary: #8b5cf6; /* violet-500 */
-  --primary-foreground: #ffffff;
+  --primary: oklch(40% 0.15 316);       /* Deep eggplant — slightly dialed back so text isn't electric */
+  --primary-foreground: oklch(99% 0.003 316);
 
-  --secondary: #f4f4f5; /* zinc-100 */
-  --secondary-foreground: #18181b;
+  --secondary: oklch(94% 0.016 316);    /* Soft mauve tint */
+  --secondary-foreground: oklch(25% 0.03 316);
 
-  --muted: #f4f4f5; /* zinc-100 */
-  --muted-foreground: #71717a; /* zinc-500 */
+  --muted: oklch(93% 0.013 316);
+  --muted-foreground: oklch(50% 0.03 316);
 
-  --accent: #f5f3ff; /* violet-50 */
-  --accent-foreground: #7c3aed; /* violet-600 */
+  --accent: oklch(87% 0.065 316);       /* Clearly distinct from card white — reads as interactive */
+  --accent-foreground: oklch(35% 0.20 316);
 
-  --destructive: #ef4444; /* red-500 */
-  --destructive-foreground: #ffffff;
+  --destructive: oklch(55% 0.22 25);
+  --destructive-foreground: oklch(99% 0.005 25);
 
-  --warning: #f59e0b; /* amber-500 */
-  --warning-foreground: #ffffff;
+  --warning: oklch(68% 0.16 75);
+  --warning-foreground: oklch(20% 0.05 75);
 
-  --border: #e4e4e7; /* zinc-200 */
-  --input: #e4e4e7;
-  --ring: #8b5cf6; /* violet-500 */
+  --border: oklch(87% 0.024 316);       /* Plum-tinted border */
+  --input: oklch(87% 0.024 316);
+  --ring: oklch(40% 0.19 316);
+
+  /* Easing tokens */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
 }
 
 .dark {
-  /* Dark Mode (Deep Zinc/Violet) */
-  --background: #09090b; /* zinc-950 */
-  --foreground: #fafafa; /* zinc-50 */
+  /* Dark Mode — deep eggplant blacks, 3-tier surface depth */
+  --background: oklch(12% 0.028 316);   /* Almost-black eggplant */
+  --foreground: oklch(96% 0.008 316);   /* Warm off-white */
 
-  --card: #09090b;
-  --card-foreground: #fafafa;
+  --card: oklch(17% 0.038 316);         /* Elevated eggplant surface */
+  --card-foreground: oklch(96% 0.008 316);
 
-  --popover: #09090b;
-  --popover-foreground: #fafafa;
+  --popover: oklch(22% 0.052 316);      /* Highest surface — popovers, modals */
+  --popover-foreground: oklch(96% 0.008 316);
 
-  --primary: #a78bfa; /* violet-400 */
-  --primary-foreground: #fafafa;
+  --primary: oklch(70% 0.22 316);       /* Vibrant purple-plum */
+  --primary-foreground: oklch(13% 0.04 316);
 
-  --secondary: #27272a; /* zinc-800 */
-  --secondary-foreground: #fafafa;
+  --secondary: oklch(22% 0.042 316);
+  --secondary-foreground: oklch(88% 0.012 316);
 
-  --muted: #27272a; /* zinc-800 */
-  --muted-foreground: #a1a1aa; /* zinc-400 */
+  --muted: oklch(22% 0.038 316);
+  --muted-foreground: oklch(62% 0.04 316);
 
-  --accent: #2e1065; /* violet-950 */
-  --accent-foreground: #ddd6fe; /* violet-200 */
+  --accent: oklch(26% 0.092 316);       /* Rich eggplant accent surface */
+  --accent-foreground: oklch(85% 0.072 316);
 
-  --destructive: #7f1d1d; /* red-900 */
-  --destructive-foreground: #fecaca; /* red-100 */
+  --destructive: oklch(40% 0.15 25);
+  --destructive-foreground: oklch(96% 0.01 25);
 
-  --warning: #78350f; /* amber-900 */
-  --warning-foreground: #fef3c7; /* amber-100 */
+  --warning: oklch(40% 0.1 75);
+  --warning-foreground: oklch(93% 0.04 75);
 
-  --border: #27272a; /* zinc-800 */
-  --input: #27272a;
-  --ring: #a78bfa; /* violet-400 */
+  --border: oklch(25% 0.05 316);        /* Warm eggplant border */
+  --input: oklch(25% 0.05 316);
+  --ring: oklch(70% 0.22 316);
+
+  /* Easing tokens */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
 }
 
 html,
@@ -293,4 +303,45 @@ select:focus-visible {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
   border-radius: 0.25rem;
+}
+
+/* Logo shimmer animation */
+@keyframes logo-shimmer {
+  0% { background-position: 0% center; }
+  100% { background-position: 200% center; }
+}
+
+/* Panel entrance animation */
+@keyframes panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.panel-enter {
+  animation: panel-in 320ms var(--ease-out-expo) both;
+}
+
+/* Panel card shadow — plum-tinted in light, deep eggplant in dark */
+.panel-shadow {
+  box-shadow:
+    0 1px 3px oklch(40% 0.19 316 / 0.07),
+    0 4px 12px oklch(40% 0.19 316 / 0.06);
+}
+
+.dark .panel-shadow {
+  box-shadow:
+    0 2px 8px oklch(10% 0.03 316 / 0.6),
+    0 8px 24px oklch(10% 0.03 316 / 0.5);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel-enter {
+    animation: none;
+  }
 }

@@ -38,7 +38,7 @@ export default function CalendarPicker({ date, onChange }: CalendarPickerProps) 
 
 
 
-  // Close on outside click
+  // Close on outside click or Escape
   useEffect(() => {
     function handleClick(e: MouseEvent) {
       if (
@@ -48,8 +48,17 @@ export default function CalendarPicker({ date, onChange }: CalendarPickerProps) 
         setOpen(false);
       }
     }
-    if (open) document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') setOpen(false);
+    }
+    if (open) {
+      document.addEventListener('mousedown', handleClick);
+      document.addEventListener('keydown', handleKey);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClick);
+      document.removeEventListener('keydown', handleKey);
+    };
   }, [open]);
 
   function shiftMonth(delta: number) {
@@ -88,13 +97,14 @@ export default function CalendarPicker({ date, onChange }: CalendarPickerProps) 
     <div
       ref={popoverRef}
       style={{ position: 'fixed', top: popoverPos.top, left: popoverPos.left, transform: 'translateX(-50%)', zIndex: 9999 }}
-      className="w-72 rounded-2xl border border-border bg-popover shadow-xl p-4 select-none"
+      className="w-72 max-w-[90vw] rounded-2xl border border-border bg-popover shadow-xl p-4 select-none"
     >
       {/* Month/Year Navigation */}
       <div className="flex items-center justify-between mb-3">
         <button
           onClick={() => shiftMonth(-1)}
-          className="rounded-lg p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+          aria-label="Previous month"
+          className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
         >
           ‹
         </button>
@@ -103,7 +113,8 @@ export default function CalendarPicker({ date, onChange }: CalendarPickerProps) 
         </span>
         <button
           onClick={() => shiftMonth(1)}
-          className="rounded-lg p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+          aria-label="Next month"
+          className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
         >
           ›
         </button>
@@ -137,7 +148,7 @@ export default function CalendarPicker({ date, onChange }: CalendarPickerProps) 
                 setOpen(false);
               }}
               className={[
-                'relative flex flex-col items-center justify-center rounded-lg py-1 text-xs font-medium transition-colors',
+                'relative flex flex-col items-center justify-center rounded-lg py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                 isSelected
                   ? 'bg-primary text-primary-foreground'
                   : isToday
@@ -149,7 +160,7 @@ export default function CalendarPicker({ date, onChange }: CalendarPickerProps) 
             >
               {day}
               {hasContent && !isSelected && (
-                <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-emerald-400" />
+                <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary/50" />
               )}
             </button>
           );

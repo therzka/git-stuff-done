@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { CircleDot, MessageSquare, CheckCircle, Tag } from "lucide-react";
 import { DEMO_ISSUES } from "@/lib/demo";
 import { useVisibilityPolling } from "@/hooks/useVisibilityPolling";
 
@@ -88,7 +89,10 @@ export default function MyIssues({
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
-        <h2 className="text-sm font-semibold text-primary">🐛 My Issues</h2>
+        <h2 className="text-base font-semibold text-primary flex items-center gap-1.5">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4" aria-hidden="true"><path d="M8 6h10"/><path d="M6 12h9"/><path d="M11 18h7"/><circle cx="3" cy="6" r="1"/><circle cx="3" cy="12" r="1"/><circle cx="3" cy="18" r="1"/></svg>
+            My Issues
+          </h2>
         <div className="flex items-center gap-1">
           <button
             onClick={() => setShowLabels((v) => !v)}
@@ -96,7 +100,7 @@ export default function MyIssues({
             aria-label="Toggle labels"
             title={showLabels ? "Hide labels" : "Show labels"}
           >
-            🏷️
+            <Tag className="h-4 w-4" aria-hidden="true" />
           </button>
           <button
           onClick={refresh}
@@ -108,6 +112,7 @@ export default function MyIssues({
             className="h-4 w-4"
             viewBox="0 0 20 20"
             fill="currentColor"
+            aria-hidden="true"
           >
             <path
               fillRule="evenodd"
@@ -125,8 +130,8 @@ export default function MyIssues({
             Loading…
           </div>
         ) : issues.length === 0 ? (
-          <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
-            No open issues 🎉
+          <div className="flex items-center justify-center gap-2 py-12 text-sm text-muted-foreground">
+            <CheckCircle className="h-4 w-4" aria-hidden="true" /> No open issues
           </div>
         ) : (
           <ul className="divide-y divide-border">
@@ -144,13 +149,15 @@ export default function MyIssues({
                         )
                       }
                       title="Insert link at cursor"
-                      className="mt-0.5 shrink-0 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 rounded p-0.5 text-muted-foreground hover:text-foreground hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none transition-all"
+                      aria-label={`Insert link for issue #${issue.number}`}
+                      className="mt-0.5 shrink-0 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 rounded p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none transition-all"
                     >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
                         viewBox="0 0 16 16"
                         fill="currentColor"
-                        className="w-3.5 h-3.5"
+                        className="w-4 h-4"
+                        aria-hidden="true"
                       >
                         <path d="M2 4.5A1.5 1.5 0 0 1 3.5 3h9A1.5 1.5 0 0 1 14 4.5v5a1.5 1.5 0 0 1-1.5 1.5H9.56l.97.97a.75.75 0 1 1-1.06 1.06l-2.25-2.25a.75.75 0 0 1 0-1.06l2.25-2.25a.75.75 0 0 1 1.06 1.06l-.97.97h2.94a.25.25 0 0 0 .25-.25v-5a.25.25 0 0 0-.25-.25h-9a.25.25 0 0 0-.25.25v2a.75.75 0 0 1-1.5 0v-2z" />
                       </svg>
@@ -175,8 +182,8 @@ export default function MyIssues({
                         {issue.repoFullName}#{issue.number}
                       </span>
                       {issue.commentCount > 0 && (
-                        <span className="text-xs text-muted-foreground">
-                          💬 {issue.commentCount}
+                          <span className="text-xs text-muted-foreground flex items-center gap-0.5">
+                          <MessageSquare className="h-3 w-3" aria-hidden="true" /> {issue.commentCount}
                         </span>
                       )}
                     </div>
@@ -207,12 +214,12 @@ export default function MyIssues({
                               title={pr.title}
                               className={`inline-flex items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[10px] font-medium transition-opacity hover:opacity-80 ${
                                 isMerged
-                                  ? "border-purple-500/30 bg-purple-500/10 text-purple-400"
+                                  ? "border-purple-400/40 bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300 dark:border-purple-700/50"
                                   : isClosed
                                     ? "border-border bg-muted text-muted-foreground"
                                     : isDraft
                                       ? "border-border bg-muted text-muted-foreground"
-                                      : "border-emerald-500/30 bg-emerald-500/10 text-emerald-500"
+                                      : "border-emerald-500/40 bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400 dark:border-emerald-700/50"
                               }`}
                             >
                               <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">

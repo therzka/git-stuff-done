@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { Bell, CheckCircle } from 'lucide-react';
 import { DEMO_NOTIFICATIONS } from '@/lib/demo';
 import { useVisibilityPolling } from '@/hooks/useVisibilityPolling';
 
@@ -29,12 +30,13 @@ function timeAgo(dateString: string): string {
 }
 
 const reasonColors: Record<string, string> = {
-  review_requested: 'bg-violet-100 text-violet-500 dark:bg-violet-900/50 dark:text-violet-200',
-  mention: 'bg-sky-100 text-sky-500 dark:bg-sky-900/50 dark:text-sky-200',
-  assign: 'bg-emerald-100 text-emerald-500 dark:bg-emerald-900/50 dark:text-emerald-200',
-  subscribed: 'bg-zinc-100 text-zinc-400 dark:bg-zinc-800 dark:text-zinc-400',
-  author: 'bg-amber-100 text-amber-500 dark:bg-amber-900/50 dark:text-amber-200',
-  ci_activity: 'bg-orange-100 text-orange-400 dark:bg-orange-900/50 dark:text-orange-200',
+  review_requested: 'bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-400',
+  comment: 'bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-400',
+  mention: 'bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-400',
+  assign: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400',
+  subscribed: 'bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400',
+  author: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400',
+  ci_activity: 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-400',
 };
 
 function reasonBadge(reason: string) {
@@ -122,13 +124,14 @@ export default function GitHubNotifications({ isDemo = false, onInsert, refreshT
     <div className="flex h-full flex-col rounded-xl text-foreground">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
-        <h2 className="text-sm font-semibold tracking-wide text-amber-500">
-          🔔 Notifications
+        <h2 className="text-base font-semibold text-primary flex items-center gap-2">
+          <Bell className="h-4 w-4" aria-hidden="true" />
+          Notifications
         </h2>
         <button
           onClick={refresh}
           disabled={isDemo}
-          className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-amber-50 hover:text-amber-500 dark:hover:bg-amber-900/30 disabled:opacity-50"
+          className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground disabled:opacity-50"
           aria-label="Refresh notifications"
         >
           <svg
@@ -136,6 +139,7 @@ export default function GitHubNotifications({ isDemo = false, onInsert, refreshT
             className="h-4 w-4"
             viewBox="0 0 20 20"
             fill="currentColor"
+            aria-hidden="true"
           >
             <path
               fillRule="evenodd"
@@ -152,7 +156,7 @@ export default function GitHubNotifications({ isDemo = false, onInsert, refreshT
             onClick={() => setHiddenIds(new Set())}
             className="text-amber-500 hover:text-amber-400 transition-colors"
           >
-            show all
+            Show all
           </button>
         </div>
       )}
@@ -164,8 +168,8 @@ export default function GitHubNotifications({ isDemo = false, onInsert, refreshT
             Loading…
           </div>
         ) : visibleNotifications.length === 0 ? (
-          <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
-            No notifications 🎉
+          <div className="flex items-center justify-center gap-2 py-12 text-sm text-muted-foreground">
+            <CheckCircle className="h-4 w-4" aria-hidden="true" /> No notifications
           </div>
         ) : (
           <ul className="divide-y divide-border">
@@ -178,9 +182,10 @@ export default function GitHubNotifications({ isDemo = false, onInsert, refreshT
                     <button
                       onClick={() => onInsert(`[${n.title}](${notificationUrl(n)})`)}
                       title="Insert link at cursor"
-                      className="mt-0.5 shrink-0 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 rounded p-0.5 text-muted-foreground hover:text-foreground hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none transition-all"
+                      aria-label={`Insert link for: ${n.title}`}
+                      className="mt-0.5 shrink-0 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 rounded p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none transition-all"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-3.5 h-3.5">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-4 h-4">
                         <path d="M2 4.5A1.5 1.5 0 0 1 3.5 3h9A1.5 1.5 0 0 1 14 4.5v5a1.5 1.5 0 0 1-1.5 1.5H9.56l.97.97a.75.75 0 1 1-1.06 1.06l-2.25-2.25a.75.75 0 0 1 0-1.06l2.25-2.25a.75.75 0 0 1 1.06 1.06l-.97.97h2.94a.25.25 0 0 0 .25-.25v-5a.25.25 0 0 0-.25-.25h-9a.25.25 0 0 0-.25.25v2a.75.75 0 0 1-1.5 0v-2z"/>
                       </svg>
                     </button>
@@ -204,10 +209,10 @@ export default function GitHubNotifications({ isDemo = false, onInsert, refreshT
                       <button
                         onClick={() => setHiddenIds((prev) => new Set(prev).add(n.id))}
                         title="Dismiss notification"
-                        className="shrink-0 opacity-0 group-hover:opacity-100 rounded p-0.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
+                        className="shrink-0 opacity-0 group-hover:opacity-100 rounded p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
                         aria-label="Dismiss notification"
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-3.5 h-3.5">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-4 h-4">
                           <path d="M3.72 3.72a.75.75 0 0 1 1.06 0L8 6.94l3.22-3.22a.75.75 0 1 1 1.06 1.06L9.06 8l3.22 3.22a.75.75 0 1 1-1.06 1.06L8 9.06l-3.22 3.22a.75.75 0 0 1-1.06-1.06L6.94 8 3.72 4.78a.75.75 0 0 1 0-1.06Z" />
                         </svg>
                       </button>
