@@ -30,12 +30,13 @@ function timeAgo(dateString: string): string {
 }
 
 const reasonColors: Record<string, string> = {
-  review_requested: 'bg-violet-100 text-violet-500 dark:bg-violet-900/50 dark:text-violet-200',
-  mention: 'bg-sky-100 text-sky-500 dark:bg-sky-900/50 dark:text-sky-200',
-  assign: 'bg-emerald-100 text-emerald-500 dark:bg-emerald-900/50 dark:text-emerald-200',
-  subscribed: 'bg-zinc-100 text-zinc-400 dark:bg-zinc-800 dark:text-zinc-400',
-  author: 'bg-amber-100 text-amber-500 dark:bg-amber-900/50 dark:text-amber-200',
-  ci_activity: 'bg-orange-100 text-orange-400 dark:bg-orange-900/50 dark:text-orange-200',
+  review_requested: 'bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-400',
+  comment: 'bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-400',
+  mention: 'bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-400',
+  assign: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400',
+  subscribed: 'bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400',
+  author: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400',
+  ci_activity: 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-400',
 };
 
 function reasonBadge(reason: string) {
