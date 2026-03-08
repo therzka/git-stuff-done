@@ -17,6 +17,43 @@ const SEARCH_TIMEOUT_MS = 180_000; // 3 minutes for large search prompts
 
 const NEED_MORE_CONTEXT = 'NEED_MORE_CONTEXT';
 
+// NDJSON streaming event types
+type SearchEvent =
+  | { type: 'progress'; message: string; daysSearched?: number; searchMode?: SearchMode }
+  | { type: 'complete'; answer: string | null; daysSearched: number; exhausted: boolean; searchMode: SearchMode }
+  | { type: 'error'; error: string };
+
+type Emit = (event: SearchEvent) => void;
+
+function createSearchStream(
+  searchFn: (emit: Emit) => Promise<void>,
+): Response {
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream({
+    async start(controller) {
+      const emit: Emit = (event) => {
+        controller.enqueue(encoder.encode(JSON.stringify(event) + '\n'));
+      };
+      try {
+        await searchFn(emit);
+      } catch (err) {
+        console.error('[search] stream error:', err);
+        emit({ type: 'error', error: 'Failed to perform search' });
+      } finally {
+        controller.close();
+      }
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'application/x-ndjson',
+      'Cache-Control': 'no-cache',
+      'X-Content-Type-Options': 'nosniff',
+    },
+  });
+}
+
 function formatDate(d: Date): string {
   return d.toISOString().split('T')[0];
 }
@@ -105,29 +142,34 @@ async function searchExhaustive(
   model: string,
   todayDate: string,
   today: Date,
+  emit: Emit,
 ) {
+  emit({ type: 'progress', message: 'Loading all logs...', searchMode: 'exhaustive' });
   console.log(`[search] exhaustive: loading all logs`);
   const { logs, daysSearched } = await loadAllLogs(today);
 
   if (logs.length === 0) {
     console.log(`[search] exhaustive: no logs found`);
-    return NextResponse.json({
-      answer:
-        "I couldn't find any work logs in the searched time period. There may not be any logs recorded for those dates.",
+    emit({
+      type: 'complete',
+      answer: "I couldn't find any work logs in the searched time period. There may not be any logs recorded for those dates.",
       daysSearched,
       exhausted: true,
-      searchMode: 'exhaustive' as SearchMode,
+      searchMode: 'exhaustive',
     });
+    return;
   }
 
   const totalChars = logs.reduce((sum, l) => sum + l.length, 0);
   console.log(`[search] exhaustive: loaded ${logs.length} logs, ${totalChars} chars`);
+  emit({ type: 'progress', message: `Loaded ${logs.length} log entries, fetching GitHub context...`, daysSearched, searchMode: 'exhaustive' });
   const allUrls = await collectUrlsFromLogs(logs);
   const githubContext = await fetchGitHubContext(Array.from(allUrls));
   console.log(`[search] exhaustive: ${allUrls.size} GitHub URLs, ${githubContext.length} context items`);
   const systemPrompt = buildSystemPrompt(todayDate, 'exhaustive');
 
   if (totalChars <= MAX_SINGLE_SHOT_CHARS) {
+    emit({ type: 'progress', message: 'Searching with AI...', daysSearched, searchMode: 'exhaustive' });
     console.log(`[search] exhaustive: single-shot (${totalChars} <= ${MAX_SINGLE_SHOT_CHARS})`);
     const searchWindow = `Searching ALL available logs (${daysSearched} days)`;
     const userPrompt = buildUserPrompt(query, logs, githubContext, searchWindow);
@@ -140,17 +182,14 @@ async function searchExhaustive(
         ? "I searched through all available work logs but couldn't find information relevant to your question."
         : result;
 
-    return NextResponse.json({
-      answer,
-      daysSearched,
-      exhausted: true,
-      searchMode: 'exhaustive' as SearchMode,
-    });
+    emit({ type: 'complete', answer, daysSearched, exhausted: true, searchMode: 'exhaustive' });
+    return;
   }
 
   // Batched: logs are too large, search in chunks and merge
   const totalBatches = Math.ceil(logs.length / EXHAUSTIVE_CHUNK_DAYS);
   console.log(`[search] exhaustive: batched mode — ${totalBatches} batches (${totalChars} chars > ${MAX_SINGLE_SHOT_CHARS})`);
+  emit({ type: 'progress', message: `Searching in ${totalBatches} batches...`, daysSearched, searchMode: 'exhaustive' });
   const partialFindings: string[] = [];
   for (let i = 0; i < logs.length; i += EXHAUSTIVE_CHUNK_DAYS) {
     const batchNum = Math.floor(i / EXHAUSTIVE_CHUNK_DAYS) + 1;
@@ -159,6 +198,7 @@ async function searchExhaustive(
     const chunkLast = chunk[chunk.length - 1].match(/^## (\d{4}-\d{2}-\d{2})/)?.[1] ?? '';
     const searchWindow = `Searching logs from ${chunkFirst} to ${chunkLast} (batch ${batchNum})`;
     console.log(`[search] exhaustive: batch ${batchNum}/${totalBatches} (${chunk.length} logs, ${chunkFirst}..${chunkLast})`);
+    emit({ type: 'progress', message: `Searching batch ${batchNum} of ${totalBatches}...`, daysSearched, searchMode: 'exhaustive' });
 
     const userPrompt = buildUserPrompt(query, chunk, githubContext, searchWindow);
     const aiStart = Date.now();
@@ -174,25 +214,23 @@ async function searchExhaustive(
   console.log(`[search] exhaustive: ${partialFindings.length}/${totalBatches} batches had findings`);
 
   if (partialFindings.length === 0) {
-    return NextResponse.json({
-      answer:
-        "I searched through all available work logs but couldn't find information relevant to your question.",
+    emit({
+      type: 'complete',
+      answer: "I searched through all available work logs but couldn't find information relevant to your question.",
       daysSearched,
       exhausted: true,
-      searchMode: 'exhaustive' as SearchMode,
+      searchMode: 'exhaustive',
     });
+    return;
   }
 
   if (partialFindings.length === 1) {
-    return NextResponse.json({
-      answer: partialFindings[0],
-      daysSearched,
-      exhausted: true,
-      searchMode: 'exhaustive' as SearchMode,
-    });
+    emit({ type: 'complete', answer: partialFindings[0], daysSearched, exhausted: true, searchMode: 'exhaustive' });
+    return;
   }
 
   // Consolidation call to merge partial findings
+  emit({ type: 'progress', message: 'Merging results from all batches...', daysSearched, searchMode: 'exhaustive' });
   console.log(`[search] exhaustive: merging ${partialFindings.length} partial findings`);
   const mergePrompt = `You were asked: "${query}"
 
@@ -209,12 +247,7 @@ ${partialFindings.map((f, i) => `### Findings batch ${i + 1}\n${f}`).join('\n\n'
   );
   console.log(`[search] exhaustive: merge call took ${Date.now() - mergeStart}ms`);
 
-  return NextResponse.json({
-    answer: merged,
-    daysSearched,
-    exhausted: true,
-    searchMode: 'exhaustive' as SearchMode,
-  });
+  emit({ type: 'complete', answer: merged, daysSearched, exhausted: true, searchMode: 'exhaustive' });
 }
 
 /**
@@ -226,7 +259,9 @@ async function searchDateBounded(
   todayDate: string,
   startDate: string,
   endDate: string,
+  emit: Emit,
 ) {
+  emit({ type: 'progress', message: `Loading logs from ${startDate} to ${endDate}...`, searchMode: 'date_bounded' });
   console.log(`[search] date_bounded: ${startDate} to ${endDate}`);
   const logs = await loadLogsForRange(startDate, endDate);
   const start = new Date(startDate + 'T00:00:00');
@@ -237,16 +272,19 @@ async function searchDateBounded(
 
   if (logs.length === 0) {
     console.log(`[search] date_bounded: no logs found`);
-    return NextResponse.json({
+    emit({
+      type: 'complete',
       answer: `I couldn't find any work logs between ${startDate} and ${endDate}.`,
       daysSearched,
       exhausted: true,
-      searchMode: 'date_bounded' as SearchMode,
+      searchMode: 'date_bounded',
     });
+    return;
   }
 
   const totalChars = logs.reduce((sum, l) => sum + l.length, 0);
   console.log(`[search] date_bounded: loaded ${logs.length} logs, ${totalChars} chars`);
+  emit({ type: 'progress', message: `Loaded ${logs.length} log entries, searching with AI...`, daysSearched, searchMode: 'date_bounded' });
   const allUrls = await collectUrlsFromLogs(logs);
   const githubContext = await fetchGitHubContext(Array.from(allUrls));
   console.log(`[search] date_bounded: ${allUrls.size} GitHub URLs, ${githubContext.length} context items`);
@@ -262,12 +300,7 @@ async function searchDateBounded(
       ? `I searched logs from ${startDate} to ${endDate} but couldn't find information relevant to your question.`
       : result;
 
-  return NextResponse.json({
-    answer,
-    daysSearched,
-    exhausted: true,
-    searchMode: 'date_bounded' as SearchMode,
-  });
+  emit({ type: 'complete', answer, daysSearched, exhausted: true, searchMode: 'date_bounded' });
 }
 
 /**
@@ -280,7 +313,9 @@ async function searchRecentFirst(
   todayDate: string,
   today: Date,
   offsetDays: number,
+  emit: Emit,
 ) {
+  emit({ type: 'progress', message: 'Searching recent logs...', daysSearched: offsetDays, searchMode: 'recent_first' });
   console.log(`[search] recent_first: starting from offset ${offsetDays} days`);
   const allLogs: string[] = [];
   const allUrls = new Set<string>();
@@ -300,6 +335,7 @@ async function searchRecentFirst(
     allLogs.push(...newLogs);
     daysSearched += WINDOW_SIZE;
     console.log(`[search] recent_first: iter ${iter + 1}/${MAX_ITERATIONS_PER_REQUEST}, window ${startStr}..${endStr}, +${newLogs.length} logs (total ${allLogs.length})`);
+    emit({ type: 'progress', message: `Looked back ${daysSearched} days (${allLogs.length} log entries)...`, daysSearched, searchMode: 'recent_first' });
 
     for (const log of newLogs) {
       const urls = await extractGitHubUrls(log);
@@ -312,15 +348,17 @@ async function searchRecentFirst(
 
     if (allLogs.length === 0) {
       console.log(`[search] recent_first: no logs found after ${daysSearched} days`);
-      return NextResponse.json({
-        answer:
-          "I couldn't find any work logs in the searched time period. There may not be any logs recorded for those dates.",
+      emit({
+        type: 'complete',
+        answer: "I couldn't find any work logs in the searched time period. There may not be any logs recorded for those dates.",
         daysSearched,
         exhausted: true,
-        searchMode: 'recent_first' as SearchMode,
+        searchMode: 'recent_first',
       });
+      return;
     }
 
+    emit({ type: 'progress', message: `Searching with AI (${daysSearched} days so far)...`, daysSearched, searchMode: 'recent_first' });
     const githubContext = await fetchGitHubContext(Array.from(allUrls));
     const totalChars = allLogs.reduce((sum, l) => sum + l.length, 0);
     const searchWindow = `Searching from ${formatDate(
@@ -344,22 +382,25 @@ async function searchRecentFirst(
     if (needMore) {
       if (daysSearched >= MAX_LOOKBACK_DAYS) {
         console.log(`[search] recent_first: exhausted all ${MAX_LOOKBACK_DAYS} days, no answer`);
-        return NextResponse.json({
-          answer:
-            "I searched through a full year of work logs but couldn't find information relevant to your question. The answer may not be in your recorded logs.",
+        emit({
+          type: 'complete',
+          answer: "I searched through a full year of work logs but couldn't find information relevant to your question. The answer may not be in your recorded logs.",
           daysSearched,
           exhausted: true,
-          searchMode: 'recent_first' as SearchMode,
+          searchMode: 'recent_first',
         });
+        return;
       }
       if (iter === MAX_ITERATIONS_PER_REQUEST - 1) {
         console.log(`[search] recent_first: hit iteration limit at ${daysSearched} days, pausing`);
-        return NextResponse.json({
+        emit({
+          type: 'complete',
           answer: null,
           daysSearched,
           exhausted: false,
-          searchMode: 'recent_first' as SearchMode,
+          searchMode: 'recent_first',
         });
+        return;
       }
       continue;
     }
@@ -369,41 +410,46 @@ async function searchRecentFirst(
     break;
   }
 
-  return NextResponse.json({
-    answer:
-      answer ??
-      "I couldn't find information relevant to your question in the searched logs.",
+  emit({
+    type: 'complete',
+    answer: answer ?? "I couldn't find information relevant to your question in the searched logs.",
     daysSearched,
     exhausted: daysSearched >= MAX_LOOKBACK_DAYS,
-    searchMode: 'recent_first' as SearchMode,
+    searchMode: 'recent_first',
   });
 }
 
 export async function POST(req: Request) {
   const t0 = Date.now();
+
+  let body;
   try {
-    const { query, model, todayDate, offsetDays = 0 } = await req.json();
-    console.log(`[search] query="${query}" model=${model} offsetDays=${offsetDays}`);
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
 
-    if (!query || !todayDate) {
-      return NextResponse.json(
-        { error: 'Missing query or todayDate' },
-        { status: 400 },
-      );
-    }
+  const { query, model, todayDate, offsetDays = 0 } = body;
+  console.log(`[search] query="${query}" model=${model} offsetDays=${offsetDays}`);
 
-    const today = new Date(todayDate + 'T12:00:00');
+  if (!query || !todayDate) {
+    return NextResponse.json(
+      { error: 'Missing query or todayDate' },
+      { status: 400 },
+    );
+  }
 
-    // Classify the query to determine optimal search strategy
+  const today = new Date(todayDate + 'T12:00:00');
+
+  return createSearchStream(async (emit) => {
+    emit({ type: 'progress', message: 'Classifying query...' });
     const classifyStart = Date.now();
     const classification = await classifySearchQuery(query, todayDate, model);
     console.log(`[search] classified as ${classification.mode} in ${Date.now() - classifyStart}ms`, classification.startDate ? `range=${classification.startDate}..${classification.endDate}` : '');
 
-    let response: Response;
-
     switch (classification.mode) {
       case 'exhaustive':
-        response = await searchExhaustive(query, model, todayDate, today);
+        await searchExhaustive(query, model, todayDate, today, emit);
         break;
 
       case 'date_bounded': {
@@ -411,33 +457,25 @@ export async function POST(req: Request) {
           classification.startDate ?? formatDate(new Date(today.getTime() - 14 * 86400000));
         const endDate = classification.endDate ?? todayDate;
 
-        // Validate dates and handle inverted ranges
         const parsedStart = new Date(startDate + 'T00:00:00');
         const parsedEnd = new Date(endDate + 'T00:00:00');
         if (isNaN(parsedStart.getTime()) || isNaN(parsedEnd.getTime())) {
           console.log(`[search] invalid dates from classifier, falling back to recent_first`);
-          response = await searchRecentFirst(query, model, todayDate, today, offsetDays);
+          await searchRecentFirst(query, model, todayDate, today, offsetDays, emit);
           break;
         }
         const resolvedStart = parsedStart <= parsedEnd ? startDate : endDate;
         const resolvedEnd = parsedStart <= parsedEnd ? endDate : startDate;
-        response = await searchDateBounded(query, model, todayDate, resolvedStart, resolvedEnd);
+        await searchDateBounded(query, model, todayDate, resolvedStart, resolvedEnd, emit);
         break;
       }
 
       case 'recent_first':
       default:
-        response = await searchRecentFirst(query, model, todayDate, today, offsetDays);
+        await searchRecentFirst(query, model, todayDate, today, offsetDays, emit);
         break;
     }
 
     console.log(`[search] completed in ${Date.now() - t0}ms`);
-    return response;
-  } catch (error) {
-    console.error(`[search] failed after ${Date.now() - t0}ms:`, error);
-    return NextResponse.json(
-      { error: 'Failed to perform search' },
-      { status: 500 },
-    );
-  }
+  });
 }
