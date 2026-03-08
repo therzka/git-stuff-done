@@ -131,7 +131,7 @@ export default function GitHubNotifications({ isDemo = false, onInsert, refreshT
         <button
           onClick={refresh}
           disabled={isDemo}
-          className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-amber-50 hover:text-amber-500 dark:hover:bg-amber-900/30 disabled:opacity-50"
+          className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground disabled:opacity-50"
           aria-label="Refresh notifications"
         >
           <svg
@@ -139,6 +139,7 @@ export default function GitHubNotifications({ isDemo = false, onInsert, refreshT
             className="h-4 w-4"
             viewBox="0 0 20 20"
             fill="currentColor"
+            aria-hidden="true"
           >
             <path
               fillRule="evenodd"
@@ -155,7 +156,7 @@ export default function GitHubNotifications({ isDemo = false, onInsert, refreshT
             onClick={() => setHiddenIds(new Set())}
             className="text-amber-500 hover:text-amber-400 transition-colors"
           >
-            show all
+            Show all
           </button>
         </div>
       )}

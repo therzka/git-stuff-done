@@ -234,7 +234,7 @@ export default function TodoList({ date, isDemo = false }: { date?: string, isDe
                     aria-label="Dismiss suggestion"
                     className="text-muted-foreground hover:text-destructive transition-colors opacity-0 group-hover:opacity-100"
                   >
-                    <X className="h-3.5 w-3.5" aria-hidden="true" />
+                    <X className="h-4 w-4" aria-hidden="true" />
                   </button>
                 </li>
               ))}
@@ -295,7 +295,7 @@ export default function TodoList({ date, isDemo = false }: { date?: string, isDe
                     className="shrink-0 text-muted-foreground opacity-0 transition hover:text-destructive group-hover:opacity-100"
                     aria-label="Delete"
                   >
-                    <X className="h-3.5 w-3.5" aria-hidden="true" />
+                    <X className="h-4 w-4" aria-hidden="true" />
                   </button>
                 </li>
               ))}
