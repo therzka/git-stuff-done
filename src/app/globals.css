@@ -38,26 +38,26 @@
 
 :root {
   /* Light Mode — warm mauve/plum surfaces, deep eggplant primary */
-  --background: oklch(97% 0.012 308);   /* Barely-there warm mauve */
-  --foreground: oklch(17% 0.025 308);   /* Near-black with warm purple undertone */
+  --background: oklch(97% 0.012 316);   /* Barely-there warm mauve */
+  --foreground: oklch(17% 0.025 316);   /* Near-black with warm purple undertone */
 
-  --card: oklch(100% 0.003 308);        /* Clean white, barely-there tint */
-  --card-foreground: oklch(17% 0.025 308);
+  --card: oklch(100% 0.003 316);        /* Clean white, barely-there tint */
+  --card-foreground: oklch(17% 0.025 316);
 
-  --popover: oklch(100% 0.003 308);
-  --popover-foreground: oklch(17% 0.025 308);
+  --popover: oklch(100% 0.003 316);
+  --popover-foreground: oklch(17% 0.025 316);
 
-  --primary: oklch(44% 0.26 308);       /* Deep eggplant — rich, not blue */
-  --primary-foreground: oklch(99% 0.003 308);
+  --primary: oklch(40% 0.19 316);       /* Deep eggplant — rich, not blue */
+  --primary-foreground: oklch(99% 0.003 316);
 
-  --secondary: oklch(94% 0.016 308);    /* Soft mauve tint */
-  --secondary-foreground: oklch(25% 0.03 308);
+  --secondary: oklch(94% 0.016 316);    /* Soft mauve tint */
+  --secondary-foreground: oklch(25% 0.03 316);
 
-  --muted: oklch(93% 0.013 308);
-  --muted-foreground: oklch(50% 0.03 308);
+  --muted: oklch(93% 0.013 316);
+  --muted-foreground: oklch(50% 0.03 316);
 
-  --accent: oklch(90% 0.038 308);       /* Warm mauve hover — reads as soft plum, not blue */
-  --accent-foreground: oklch(40% 0.24 308);
+  --accent: oklch(90% 0.038 316);       /* Warm mauve hover — reads as soft plum, not blue */
+  --accent-foreground: oklch(38% 0.18 316);
 
   --destructive: oklch(55% 0.22 25);
   --destructive-foreground: oklch(99% 0.005 25);
@@ -65,9 +65,9 @@
   --warning: oklch(68% 0.16 75);
   --warning-foreground: oklch(20% 0.05 75);
 
-  --border: oklch(87% 0.024 308);       /* Plum-tinted border */
-  --input: oklch(87% 0.024 308);
-  --ring: oklch(44% 0.26 308);
+  --border: oklch(87% 0.024 316);       /* Plum-tinted border */
+  --input: oklch(87% 0.024 316);
+  --ring: oklch(40% 0.19 316);
 
   /* Easing tokens */
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
@@ -77,26 +77,26 @@
 
 .dark {
   /* Dark Mode — deep eggplant blacks, 3-tier surface depth */
-  --background: oklch(12% 0.028 312);   /* Almost-black eggplant */
-  --foreground: oklch(96% 0.008 308);   /* Warm off-white */
+  --background: oklch(12% 0.028 316);   /* Almost-black eggplant */
+  --foreground: oklch(96% 0.008 316);   /* Warm off-white */
 
-  --card: oklch(17% 0.038 312);         /* Elevated eggplant surface */
-  --card-foreground: oklch(96% 0.008 308);
+  --card: oklch(17% 0.038 316);         /* Elevated eggplant surface */
+  --card-foreground: oklch(96% 0.008 316);
 
-  --popover: oklch(22% 0.052 312);      /* Highest surface — popovers, modals */
-  --popover-foreground: oklch(96% 0.008 308);
+  --popover: oklch(22% 0.052 316);      /* Highest surface — popovers, modals */
+  --popover-foreground: oklch(96% 0.008 316);
 
-  --primary: oklch(70% 0.22 305);       /* Vibrant purple-plum */
-  --primary-foreground: oklch(13% 0.04 312);
+  --primary: oklch(70% 0.22 316);       /* Vibrant purple-plum */
+  --primary-foreground: oklch(13% 0.04 316);
 
-  --secondary: oklch(22% 0.042 312);
-  --secondary-foreground: oklch(88% 0.012 308);
+  --secondary: oklch(22% 0.042 316);
+  --secondary-foreground: oklch(88% 0.012 316);
 
-  --muted: oklch(22% 0.038 312);
-  --muted-foreground: oklch(62% 0.04 308);
+  --muted: oklch(22% 0.038 316);
+  --muted-foreground: oklch(62% 0.04 316);
 
-  --accent: oklch(26% 0.092 312);       /* Rich eggplant accent surface */
-  --accent-foreground: oklch(85% 0.072 308);
+  --accent: oklch(26% 0.092 316);       /* Rich eggplant accent surface */
+  --accent-foreground: oklch(85% 0.072 316);
 
   --destructive: oklch(40% 0.15 25);
   --destructive-foreground: oklch(96% 0.01 25);
@@ -104,9 +104,9 @@
   --warning: oklch(40% 0.1 75);
   --warning-foreground: oklch(93% 0.04 75);
 
-  --border: oklch(25% 0.05 312);        /* Warm eggplant border */
-  --input: oklch(25% 0.05 312);
-  --ring: oklch(70% 0.22 305);
+  --border: oklch(25% 0.05 316);        /* Warm eggplant border */
+  --input: oklch(25% 0.05 316);
+  --ring: oklch(70% 0.22 316);
 
   /* Easing tokens */
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
@@ -324,14 +324,14 @@ select:focus-visible {
 /* Panel card shadow — plum-tinted in light, deep eggplant in dark */
 .panel-shadow {
   box-shadow:
-    0 1px 3px oklch(44% 0.26 308 / 0.07),
-    0 4px 12px oklch(44% 0.26 308 / 0.06);
+    0 1px 3px oklch(40% 0.19 316 / 0.07),
+    0 4px 12px oklch(40% 0.19 316 / 0.06);
 }
 
 .dark .panel-shadow {
   box-shadow:
-    0 2px 8px oklch(10% 0.03 312 / 0.6),
-    0 8px 24px oklch(10% 0.03 312 / 0.5);
+    0 2px 8px oklch(10% 0.03 316 / 0.6),
+    0 8px 24px oklch(10% 0.03 316 / 0.5);
 }
 
 @media (prefers-reduced-motion: reduce) {
