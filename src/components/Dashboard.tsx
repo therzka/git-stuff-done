@@ -5,14 +5,13 @@ import { createPortal } from 'react-dom';
 import { useTheme } from 'next-themes';
 import { useSearchParams } from 'next/navigation';
 import { Panel, Group as PanelGroup, Separator as PanelResizeHandle } from 'react-resizable-panels';
-import { Upload, Moon, Sun, BarChart2, Search, Settings, LayoutGrid, AlignJustify, Menu, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Upload, Moon, Sun, BarChart2, Search, Settings, LayoutGrid, AlignJustify, Menu, X, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
 import RawWorkLog from './RawWorkLog';
 import TodoList from './TodoList';
 import MyPRs from './MyPRs';
 import MyIssues from './MyIssues';
 import GitHubNotifications from './GitHubNotifications';
-import SummaryModal from './SummaryModal';
-import SearchModal from './SearchModal';
+import AiModal from './AiModal';
 import CalendarPicker from './CalendarPicker';
 import { GITHUB_ORG } from '@/lib/constants';
 
@@ -54,8 +53,11 @@ export default function Dashboard() {
   const [committing, setCommitting] = useState(false);
   const [commitMsg, setCommitMsg] = useState<string | null>(null);
   const [date, setDate] = useState(todayISO);
-  const [showSummary, setShowSummary] = useState(false);
-  const [showSearch, setShowSearch] = useState(false);
+  const [aiModalTab, setAiModalTab] = useState<'search' | 'summarize' | null>(null);
+  const [aiMenuOpen, setAiMenuOpen] = useState(false);
+  const aiMenuBtnRef = useRef<HTMLButtonElement>(null);
+  const aiMenuRef = useRef<HTMLDivElement>(null);
+  const [aiMenuPos, setAiMenuPos] = useState({ top: 0, left: 0 });
   const insertAtCursorRef = useRef<((text: string) => void) | null>(null);
 
   // Layout & panel visibility
@@ -114,6 +116,18 @@ export default function Dashboard() {
     if (panelMenuOpen) document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
   }, [panelMenuOpen]);
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (
+        aiMenuRef.current && !aiMenuRef.current.contains(e.target as Node) &&
+        aiMenuBtnRef.current && !aiMenuBtnRef.current.contains(e.target as Node)
+      ) {
+        setAiMenuOpen(false);
+      }
+    }
+    if (aiMenuOpen) document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [aiMenuOpen]);
 
   // Avoid hydration mismatch
   useEffect(() => {
@@ -243,20 +257,19 @@ export default function Dashboard() {
             {mounted ? (theme === 'dark' ? <Moon className="h-4 w-4" aria-hidden="true" /> : <Sun className="h-4 w-4" aria-hidden="true" />) : <span className="h-4 w-4 inline-block" />}
           </button>
           <button
-            onClick={() => setShowSummary(true)}
+            ref={aiMenuBtnRef}
+            onClick={() => {
+              if (!aiMenuOpen && aiMenuBtnRef.current) {
+                const rect = aiMenuBtnRef.current.getBoundingClientRect();
+                setAiMenuPos({ top: rect.bottom + 8, left: rect.right });
+              }
+              setAiMenuOpen((o) => !o);
+            }}
             className="rounded-lg px-2 py-1.5 text-sm text-muted-foreground transition hover:bg-accent hover:text-accent-foreground"
-            aria-label="Summarize"
-            title="Generate Summary"
+            aria-label="AI Assistant"
+            title="AI Assistant"
           >
-            <BarChart2 className="h-4 w-4" aria-hidden="true" />
-          </button>
-          <button
-            onClick={() => setShowSearch(true)}
-            className="rounded-lg px-2 py-1.5 text-sm text-muted-foreground transition hover:bg-accent hover:text-accent-foreground"
-            aria-label="Search"
-            title="Search Work Logs"
-          >
-            <Search className="h-4 w-4" aria-hidden="true" />
+            <Sparkles className="h-4 w-4" aria-hidden="true" />
           </button>
           <button
             onClick={() => setShowSettings((s) => !s)}
@@ -316,16 +329,38 @@ export default function Dashboard() {
           )
         : null}
 
-      <SummaryModal
-        isOpen={showSummary}
-        onClose={() => setShowSummary(false)}
-        defaultDate={date}
-        isDemo={isDemo}
-      />
+      {/* AI menu dropdown (portal) */}
+      {typeof document !== 'undefined' && aiMenuOpen
+        ? createPortal(
+            <div
+              ref={aiMenuRef}
+              style={{ position: 'fixed', top: aiMenuPos.top, left: aiMenuPos.left, transform: 'translateX(-100%)', zIndex: 9999 }}
+              className="w-52 rounded-xl border border-border bg-popover shadow-xl p-2 select-none"
+            >
+              <button
+                onClick={() => { setAiModalTab('search'); setAiMenuOpen(false); }}
+                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors"
+              >
+                <Search className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                Search Logs
+              </button>
+              <button
+                onClick={() => { setAiModalTab('summarize'); setAiMenuOpen(false); }}
+                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors"
+              >
+                <BarChart2 className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                Generate Summary
+              </button>
+            </div>,
+            document.body,
+          )
+        : null}
 
-      <SearchModal
-        isOpen={showSearch}
-        onClose={() => setShowSearch(false)}
+      <AiModal
+        isOpen={aiModalTab !== null}
+        onClose={() => setAiModalTab(null)}
+        defaultTab={aiModalTab ?? 'search'}
+        defaultDate={date}
         isDemo={isDemo}
       />
 
