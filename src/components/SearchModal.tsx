@@ -136,7 +136,7 @@ export default function SearchModal({ isOpen, onClose, isDemo = false }: SearchM
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4" onMouseDown={(e) => { if (panelRef.current && !panelRef.current.contains(e.target as Node)) handleClose(); }}>
       <div ref={panelRef} className="w-full max-w-2xl rounded-2xl bg-popover shadow-xl ring-1 ring-border max-h-[90vh] flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-border px-6 py-4 bg-popover/50 backdrop-blur-sm sticky top-0 z-10">
+        <div className="flex items-center justify-between border-b border-border px-6 py-4 bg-popover sticky top-0 z-10">
           <h2 className="text-lg font-semibold text-popover-foreground">Search Work Logs</h2>
           <button onClick={handleClose} className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded-md hover:bg-muted">✕</button>
         </div>
@@ -232,7 +232,7 @@ export default function SearchModal({ isOpen, onClose, isDemo = false }: SearchM
         </div>
 
         {/* Footer */}
-        <div className="border-t border-border px-6 py-4 flex justify-between items-center bg-popover/80 backdrop-blur-sm sticky bottom-0 z-10">
+        <div className="border-t border-border px-6 py-4 flex justify-between items-center bg-popover sticky bottom-0 z-10">
           <div className="flex gap-2">
             {result && (
               <button
@@ -246,7 +246,7 @@ export default function SearchModal({ isOpen, onClose, isDemo = false }: SearchM
           <button
             onClick={() => handleSearch(0)}
             disabled={loading || !query.trim()}
-            className="rounded-xl bg-gradient-to-r from-primary to-accent-foreground px-6 py-2.5 text-sm font-semibold text-primary-foreground shadow-md shadow-primary/20 transition-all hover:shadow-lg hover:shadow-primary/30 hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none"
+            className="rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition-all hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? 'Searching...' : '🔍 Search'}
           </button>

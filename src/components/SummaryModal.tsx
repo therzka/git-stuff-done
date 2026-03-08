@@ -146,7 +146,7 @@ export default function SummaryModal({ isOpen, onClose, defaultDate, isDemo = fa
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4" onMouseDown={(e) => { if (panelRef.current && !panelRef.current.contains(e.target as Node)) onClose(); }}>
       <div ref={panelRef} className="w-full max-w-2xl rounded-2xl bg-popover shadow-xl ring-1 ring-border max-h-[90vh] flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-border px-6 py-4 bg-popover/50 backdrop-blur-sm sticky top-0 z-10">
+        <div className="flex items-center justify-between border-b border-border px-6 py-4 bg-popover sticky top-0 z-10">
           <h2 className="text-lg font-semibold text-popover-foreground">Generate Summary</h2>
           <button onClick={onClose} aria-label="Close" className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded-md hover:bg-muted">✕</button>
         </div>
@@ -238,7 +238,7 @@ export default function SummaryModal({ isOpen, onClose, defaultDate, isDemo = fa
         </div>
 
         {/* Footer */}
-        <div className="border-t border-border px-6 py-4 flex justify-between items-center bg-popover/80 backdrop-blur-sm sticky bottom-0 z-10">
+        <div className="border-t border-border px-6 py-4 flex justify-between items-center bg-popover sticky bottom-0 z-10">
           <div className="flex gap-2">
             {result && (
               <>
@@ -267,7 +267,7 @@ export default function SummaryModal({ isOpen, onClose, defaultDate, isDemo = fa
           <button
             onClick={generateSummary}
             disabled={loading}
-            className="rounded-xl bg-gradient-to-r from-primary to-accent-foreground px-6 py-2.5 text-sm font-semibold text-primary-foreground shadow-md shadow-primary/20 transition-all hover:shadow-lg hover:shadow-primary/30 hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none"
+            className="rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition-all hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? 'Generating...' : 'Generate Summary'}
           </button>

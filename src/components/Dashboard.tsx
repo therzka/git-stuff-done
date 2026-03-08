@@ -185,9 +185,9 @@ export default function Dashboard() {
   return (
     <div className="flex h-screen flex-col bg-background text-foreground transition-colors duration-300">
       {/* Header */}
-      <header className="flex shrink-0 flex-wrap items-center justify-between gap-y-2 border-b border-border bg-card/70 backdrop-blur-sm px-4 py-2 sm:px-6 sm:py-3">
+      <header className="flex shrink-0 flex-wrap items-center justify-between gap-y-2 border-b border-border bg-card px-4 py-2 sm:px-6 sm:py-3">
         <div className="flex items-center gap-3">
-          <span className="text-base font-bold tracking-tight bg-gradient-to-r from-primary to-pink-400 bg-clip-text text-transparent sm:text-lg">✨ git stuff done</span>
+          <span className="text-base font-bold tracking-tight text-primary sm:text-xl">git stuff done</span>
           {isDemo && (
             <span className="rounded-full bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 text-[10px] font-bold text-amber-500 uppercase tracking-wide">
               Demo Mode
@@ -219,7 +219,7 @@ export default function Dashboard() {
         </div>
         <div className="flex items-center gap-1 sm:gap-3">
           {commitMsg && (
-            <span className="text-xs text-emerald-500 font-medium">{commitMsg}</span>
+            <span className="text-xs text-primary font-medium">{commitMsg}</span>
           )}
           <button
             onClick={handleCommit}
@@ -325,7 +325,7 @@ export default function Dashboard() {
 
       {/* Settings panel */}
       {showSettings && (
-        <div className="border-b border-border bg-card/80 backdrop-blur-sm px-6 py-4">
+        <div className="border-b border-border bg-card px-6 py-4">
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-sm font-semibold text-foreground">Ignored Repos <span className="text-muted-foreground font-normal">(in {GITHUB_ORG} org)</span></h3>
             <button onClick={() => setShowSettings(false)} className="text-xs text-muted-foreground hover:text-foreground">Close</button>
@@ -373,7 +373,7 @@ export default function Dashboard() {
             <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
           </svg>
         </button>
-        <div className="h-full overflow-auto rounded-2xl border border-border bg-card/50 backdrop-blur-sm p-4 shadow-sm transition-colors">
+        <div className="h-full overflow-auto rounded-2xl border border-border bg-card panel-enter panel-shadow p-4 transition-colors">
           {children}
         </div>
       </div>

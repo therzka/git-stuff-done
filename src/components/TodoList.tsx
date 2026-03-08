@@ -185,7 +185,7 @@ export default function TodoList({ date, isDemo = false }: { date?: string, isDe
           onClick={suggest}
           disabled={suggesting}
           title={isDemo ? 'Suggest todos (Demo)' : 'Suggest todos'}
-          className="rounded-xl bg-gradient-to-r from-primary to-accent-foreground px-3 py-1.5 text-xs font-semibold text-primary-foreground shadow-sm transition hover:opacity-90 disabled:opacity-50"
+          className="rounded-xl bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground shadow-sm transition hover:opacity-90 disabled:opacity-50"
         >
           {suggesting ? "Thinking…" : "✨ Suggest"}
         </button>
