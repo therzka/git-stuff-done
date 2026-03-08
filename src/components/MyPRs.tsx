@@ -192,12 +192,12 @@ export default function MyPRs({
                         )}
                         {!pr.draft &&
                           pr.reviewDecision === "REVIEW_REQUIRED" && (
-                            <span className="mr-1.5 rounded-full bg-warning px-1.5 py-0.5 text-[10px] font-semibold text-warning-foreground">
+                            <span className="mr-1.5 rounded-full bg-orange-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-orange-600 dark:text-orange-400">
                               NEEDS REVIEW
                             </span>
                           )}
                         {pr.unresolvedThreads > 0 && (
-                          <span className="mr-1.5 rounded-full bg-accent px-1.5 py-0.5 text-[10px] font-semibold text-accent-foreground">
+                          <span className="mr-1.5 rounded-full bg-sky-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-sky-600 dark:text-sky-400">
                             {pr.unresolvedThreads} COMMENT
                             {pr.unresolvedThreads !== 1 ? "S" : ""}
                           </span>
