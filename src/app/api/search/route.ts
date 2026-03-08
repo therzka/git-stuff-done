@@ -17,6 +17,22 @@ const SEARCH_TIMEOUT_MS = 180_000; // 3 minutes for large search prompts
 
 const NEED_MORE_CONTEXT = 'NEED_MORE_CONTEXT';
 
+/** Response is purely a "need more context" signal (token at start, no real content before it) */
+function isNeedMoreContext(result: string): boolean {
+  return result.trim().startsWith(NEED_MORE_CONTEXT);
+}
+
+/** Strip the NEED_MORE_CONTEXT sentinel from AI responses so it never reaches the user */
+function sanitizeResponse(result: string): string {
+  const cleaned = result
+    .split('\n')
+    .filter(line => !line.includes(NEED_MORE_CONTEXT))
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+  return cleaned || result.replace(/`?NEED_MORE_CONTEXT`?/g, '').trim();
+}
+
 // NDJSON streaming event types
 type SearchEvent =
   | { type: 'progress'; message: string; daysSearched?: number; searchMode?: SearchMode }
@@ -178,9 +194,9 @@ async function searchExhaustive(
     console.log(`[search] exhaustive: AI call took ${Date.now() - aiStart}ms, response ${result.length} chars`);
 
     const answer =
-      result.trim() === NEED_MORE_CONTEXT
+      isNeedMoreContext(result)
         ? "I searched through all available work logs but couldn't find information relevant to your question."
-        : result;
+        : sanitizeResponse(result);
 
     emit({ type: 'complete', answer, daysSearched, exhausted: true, searchMode: 'exhaustive' });
     return;
@@ -203,11 +219,11 @@ async function searchExhaustive(
     const userPrompt = buildUserPrompt(query, chunk, githubContext, searchWindow);
     const aiStart = Date.now();
     const result = await callCopilot(systemPrompt, userPrompt, model, SEARCH_TIMEOUT_MS);
-    const found = result.trim() !== NEED_MORE_CONTEXT;
+    const found = !isNeedMoreContext(result);
     console.log(`[search] exhaustive: batch ${batchNum}/${totalBatches} AI call took ${Date.now() - aiStart}ms, found=${found}`);
 
     if (found) {
-      partialFindings.push(result);
+      partialFindings.push(sanitizeResponse(result));
     }
   }
 
@@ -296,9 +312,9 @@ async function searchDateBounded(
   console.log(`[search] date_bounded: AI call took ${Date.now() - aiStart}ms, response ${result.length} chars`);
 
   const answer =
-    result.trim() === NEED_MORE_CONTEXT
+    isNeedMoreContext(result)
       ? `I searched logs from ${startDate} to ${endDate} but couldn't find information relevant to your question.`
-      : result;
+      : sanitizeResponse(result);
 
   emit({ type: 'complete', answer, daysSearched, exhausted: true, searchMode: 'date_bounded' });
 }
@@ -376,7 +392,7 @@ async function searchRecentFirst(
     console.log(`[search] recent_first: AI call with ${totalChars} chars, ${githubContext.length} context items`);
     const aiStart = Date.now();
     const result = await callCopilot(systemPrompt, userPrompt, model, SEARCH_TIMEOUT_MS);
-    const needMore = result.trim() === NEED_MORE_CONTEXT;
+    const needMore = result.includes(NEED_MORE_CONTEXT);
     console.log(`[search] recent_first: AI call took ${Date.now() - aiStart}ms, needMore=${needMore}`);
 
     if (needMore) {
@@ -405,7 +421,7 @@ async function searchRecentFirst(
       continue;
     }
 
-    answer = result;
+    answer = sanitizeResponse(result);
     console.log(`[search] recent_first: found answer at ${daysSearched} days`);
     break;
   }
