@@ -2,12 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { X, AlertTriangle, Search } from 'lucide-react';
-
-const MODELS = [
-  { label: 'GPT 5.2', value: 'gpt-5.2' },
-  { label: 'GPT 4.1', value: 'gpt-4.1' },
-  { label: 'Claude 4.6 Sonnet', value: 'claude-sonnet-4.6' },
-];
+import { useModels } from '@/hooks/useModels';
 
 interface SearchModalProps {
   isOpen: boolean;
@@ -16,11 +11,12 @@ interface SearchModalProps {
 }
 
 export default function SearchModal({ isOpen, onClose, isDemo = false }: SearchModalProps) {
+  const { models, loading: modelsLoading } = useModels(isOpen);
   const DEMO_QUERY = 'when did I meet with sarah?';
   const DEMO_RESULT = "Based on your work logs, you last met with Sarah on **2026-02-27** (Thursday).\n\n**From that day's log:**\n- 1:1 with Sarah — discussed Q2 roadmap priorities and the upcoming analytics migration\n- Agreed to sync again after the design review next Wednesday\n\nBefore that, you also met on **2026-02-13** for sprint planning.";
 
   const [query, setQuery] = useState('');
-  const [selectedModel, setSelectedModel] = useState(MODELS[0].value);
+  const [selectedModel, setSelectedModel] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -31,6 +27,12 @@ export default function SearchModal({ isOpen, onClose, isDemo = false }: SearchM
   const abortRef = useRef<AbortController | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const demoInitRef = useRef(false);
+
+  useEffect(() => {
+    if (!modelsLoading && models.length > 0 && !selectedModel) {
+      setSelectedModel(models[0].id);
+    }
+  }, [models, modelsLoading, selectedModel]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -173,12 +175,14 @@ export default function SearchModal({ isOpen, onClose, isDemo = false }: SearchM
             <select
               value={selectedModel}
               onChange={(e) => setSelectedModel(e.target.value)}
-              disabled={loading}
-              className="w-full rounded-xl border border-input bg-muted/50 px-3 py-2 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-ring/20 transition-all cursor-pointer"
+              disabled={loading || modelsLoading}
+              className="w-full rounded-xl border border-input bg-muted/50 px-3 py-2 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-ring/20 transition-all cursor-pointer disabled:opacity-50"
             >
-              {MODELS.map((m) => (
-                <option key={m.value} value={m.value}>{m.label}</option>
-              ))}
+              {modelsLoading
+                ? <option value="">Loading models…</option>
+                : models.map((m) => (
+                  <option key={m.id} value={m.id}>{m.name}</option>
+                ))}
             </select>
           </div>
 

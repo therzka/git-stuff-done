@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { X, AlertTriangle } from 'lucide-react';
+import { useModels } from '@/hooks/useModels';
 
 const DEFAULT_PROMPTS = [
   { label: 'Daily Standup', value: 'Summarize my work for a daily standup meeting. Focus on what was completed, what is in progress, and any blockers.' },
@@ -16,22 +17,23 @@ interface SummaryModalProps {
   defaultDate: string;
 }
 
-const MODELS = [
-  { label: 'GPT 5.2', value: 'gpt-5.2' },
-  { label: 'GPT 4.1', value: 'gpt-4.1' },
-  { label: 'Claude 4.6 Sonnet', value: 'claude-sonnet-4.6' },
-];
-
 export default function SummaryModal({ isOpen, onClose, defaultDate, isDemo = false }: SummaryModalProps & { isDemo?: boolean }) {
+  const { models, loading: modelsLoading } = useModels(isOpen);
   const [startDate, setStartDate] = useState(defaultDate);
   const [endDate, setEndDate] = useState(defaultDate);
   const [customPrompt, setCustomPrompt] = useState(DEFAULT_PROMPTS[0].value);
-  const [selectedModel, setSelectedModel] = useState(MODELS[0].value);
+  const [selectedModel, setSelectedModel] = useState('');
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [result, setResult] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!modelsLoading && models.length > 0 && !selectedModel) {
+      setSelectedModel(models[0].id);
+    }
+  }, [models, modelsLoading, selectedModel]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -197,11 +199,14 @@ export default function SummaryModal({ isOpen, onClose, defaultDate, isDemo = fa
                 id="summary-model"
                 value={selectedModel}
                 onChange={(e) => setSelectedModel(e.target.value)}
-                className="w-full rounded-xl border border-input bg-muted/50 px-3 py-2 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-ring/20 transition-all cursor-pointer"
+                disabled={modelsLoading}
+                className="w-full rounded-xl border border-input bg-muted/50 px-3 py-2 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-ring/20 transition-all cursor-pointer disabled:opacity-50"
               >
-                {MODELS.map((m) => (
-                  <option key={m.value} value={m.value}>{m.label}</option>
-                ))}
+                {modelsLoading
+                  ? <option value="">Loading models…</option>
+                  : models.map((m) => (
+                    <option key={m.id} value={m.id}>{m.name}</option>
+                  ))}
               </select>
             </div>
           </div>
