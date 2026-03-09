@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { X, AlertTriangle, Search } from 'lucide-react';
+import { X, AlertTriangle, Search, ChevronDown, Check, Copy } from 'lucide-react';
 
 const MODELS = [
   { label: 'GPT 5.2', value: 'gpt-5.2' },
@@ -28,9 +28,16 @@ export default function SearchModal({ isOpen, onClose, isDemo = false }: SearchM
   const [exhausted, setExhausted] = useState(false);
   const [canContinue, setCanContinue] = useState(false);
   const [searchMode, setSearchMode] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const demoInitRef = useRef(false);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -170,16 +177,19 @@ export default function SearchModal({ isOpen, onClose, isDemo = false }: SearchM
           {/* Model selector */}
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wider">AI Model</label>
-            <select
-              value={selectedModel}
-              onChange={(e) => setSelectedModel(e.target.value)}
-              disabled={loading}
-              className="w-full rounded-xl border border-input bg-muted/50 px-3 py-2 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-ring/20 transition-all cursor-pointer"
-            >
-              {MODELS.map((m) => (
-                <option key={m.value} value={m.value}>{m.label}</option>
-              ))}
-            </select>
+            <div className="relative">
+              <select
+                value={selectedModel}
+                onChange={(e) => setSelectedModel(e.target.value)}
+                disabled={loading}
+                className="w-full appearance-none rounded-xl border border-input bg-muted/50 pl-3 pr-9 py-2 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-ring/20 transition-all cursor-pointer"
+              >
+                {MODELS.map((m) => (
+                  <option key={m.value} value={m.value}>{m.label}</option>
+                ))}
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
+            </div>
           </div>
 
           {/* Loading / Progress */}
@@ -246,10 +256,16 @@ export default function SearchModal({ isOpen, onClose, isDemo = false }: SearchM
           <div className="flex gap-2">
             {result && (
               <button
-                onClick={() => navigator.clipboard.writeText(result)}
-                className="rounded-xl px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:shadow-sm border border-transparent hover:border-border transition-all"
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(result);
+                    setCopied(true);
+                    setTimeout(() => { if (mountedRef.current) setCopied(false); }, 2000);
+                  } catch { /* clipboard not available */ }
+                }}
+                className={`rounded-xl px-4 py-2 text-sm font-medium flex items-center gap-1.5 cursor-pointer transition-all ${copied ? 'text-emerald-500 border border-emerald-500/30 bg-emerald-500/10' : 'text-muted-foreground border border-border bg-muted/50 hover:bg-muted hover:shadow-sm'}`}
               >
-                Copy
+                {copied ? <><Check className="h-3.5 w-3.5" aria-hidden="true" />Copied!</> : <><Copy className="h-3.5 w-3.5" aria-hidden="true" />Copy</>}
               </button>
             )}
           </div>
