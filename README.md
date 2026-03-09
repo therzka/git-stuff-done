@@ -18,6 +18,8 @@
   - **Recent-first** — general queries progressively look back in 7-day increments (up to 365 days), ideal for "when did I last…" style questions with resumable deep lookback.
 
   The search API streams results via NDJSON, so you see real-time progress in the UI — query classification, log loading, batch progress, and AI call status update live as the search runs. Follows GitHub links in your logs for additional context and never fabricates answers. Includes a model selector.
+
+- **🤖 Dynamic Model Loading** — Available AI models are loaded from the Copilot SDK at runtime and cached for 24 hours. Falls back to a built-in default list if the SDK is unavailable.
 - **✅ TODO List** — Manual TODOs with inline editing + AI-suggested action items based on your work log.
 - **🔀 My PRs** — Live feed of your open PRs (authored or assigned) in your GitHub org with status badges: **Copilot** (authored by Copilot, you're an assignee), **Draft**, **Queued** / **Merging** (merge queue), **CI Failing** (required checks only), **Needs Review** (awaiting human review), and **unanswered comment count** (excludes bots and resolved threads). Click the insert button on any PR to paste its link at the cursor in your work log.
 - **🐛 My Issues** — Open issues assigned to you across your GitHub org, showing labels (toggleable) and comment counts. Linked PRs appear as chips styled by state (open/draft/merged/closed). Click the insert button to paste a link at the cursor in your work log.
@@ -107,7 +109,7 @@
 - Next.js 16 (App Router) + TypeScript
 - Tailwind CSS v4
 - Tiptap (ProseMirror) rich text editor
-- `@github/copilot-sdk` for AI summaries
+- `@github/copilot-sdk` for AI summaries and dynamic model discovery
 - Space Grotesk + JetBrains Mono fonts
 - Octokit for GitHub API
 - react-resizable-panels for layout
@@ -126,10 +128,10 @@
 | :-----------------------------------------------: | :------------------------------------------------------: |
 | <img src="screenshots/summary.png" width="400" /> | <img src="screenshots/summary-result.png" width="400" /> |
 
-|                  AI Search                   |                    Alternate Layout                     |
-| :------------------------------------------: | :-----------------------------------------------------: |
+|                       AI Search                       |                    Alternate Layout                     |
+| :---------------------------------------------------: | :-----------------------------------------------------: |
 | <img src="screenshots/search-demo.png" width="400" /> | <img src="screenshots/column-layout.png" width="400" /> |
 
-|                  Calendar Picker                   |                                                         |
-| :------------------------------------------------: | :-----------------------------------------------------: |
-| <img src="screenshots/calendar.png" width="400" /> |                                                         |
+|                  Calendar Picker                   |     |
+| :------------------------------------------------: | :-: |
+| <img src="screenshots/calendar.png" width="400" /> |     |
