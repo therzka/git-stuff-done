@@ -1,4 +1,4 @@
-import { readFile, writeFile, mkdir, access } from "fs/promises";
+import { readFile, writeFile, mkdir, access, readdir, unlink } from "fs/promises";
 import path from "path";
 
 // --- Types ---
@@ -163,4 +163,35 @@ export async function readConfig(): Promise<AppConfig> {
 export async function writeConfig(config: AppConfig): Promise<void> {
   await ensureDirs();
   await writeFile(configPath(), JSON.stringify(config, null, 2), "utf-8");
+}
+
+// --- Summary browsing helpers ---
+
+export async function listSummaries(): Promise<string[]> {
+  try {
+    const files = await readdir(summariesDir());
+    return files
+      .filter((f) => f.endsWith(".md"))
+      .sort()
+      .reverse();
+  } catch {
+    return [];
+  }
+}
+
+export async function readSummary(filename: string): Promise<string | null> {
+  try {
+    return await readFile(getSummaryPath(filename), "utf-8");
+  } catch {
+    return null;
+  }
+}
+
+export async function deleteSummary(filename: string): Promise<boolean> {
+  try {
+    await unlink(getSummaryPath(filename));
+    return true;
+  } catch {
+    return false;
+  }
 }
