@@ -254,10 +254,11 @@ export default function SearchModal({
             </label>
             <div className="relative">
               <select
+                id="search-model-select"
                 value={selectedModel}
                 onChange={(e) => setSelectedModel(e.target.value)}
                 disabled={loading || modelsLoading}
-                className="w-full appearance-none rounded-xl border border-input bg-muted/50 px-3 pr-9 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-ring/20 transition-all cursor-pointer disabled:opacity-50"
+                className="w-full appearance-none rounded-xl border border-input bg-muted/50 px-3 py-2 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-ring/20 transition-all cursor-pointer disabled:opacity-50"
               >
                 {modelsLoading ? (
                   <option value="">Loading models…</option>
