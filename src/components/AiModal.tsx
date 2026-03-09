@@ -9,6 +9,7 @@ const DEFAULT_PROMPTS = [
   { label: 'Daily Standup', value: 'Summarize my work for a daily standup meeting. Focus on what was completed, what is in progress, and any blockers.' },
   { label: 'Weekly Report', value: 'Create a weekly report summarizing key achievements, PRs merged, and tasks completed. Group by project or topic.' },
   { label: 'Detailed Changelog', value: 'List all technical changes, bug fixes, and refactors in a changelog format.' },
+  { label: 'AI Usage', value: 'Summarize how I used AI tools this past week. Include mentions of Copilot, AI-generated code, AI-assisted debugging, pair programming with AI, and any AI-related workflow patterns. Note which tasks AI helped with and how.' },
   { label: 'Custom', value: '' },
 ];
 
@@ -123,6 +124,12 @@ export default function AiModal({ isOpen, onClose, defaultTab, defaultDate, isDe
 
   function todayISO() {
     return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+  }
+
+  function daysAgoISO(days: number) {
+    const d = new Date();
+    d.setDate(d.getDate() - days);
+    return d.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
   }
 
   const handleSearch = async (offsetDays = 0) => {
@@ -463,6 +470,15 @@ export default function AiModal({ isOpen, onClose, defaultTab, defaultDate, isDe
                       const idx = Number(e.target.value);
                       setSelectedPromptIdx(idx);
                       setCustomPrompt(DEFAULT_PROMPTS[idx].value);
+                      const label = DEFAULT_PROMPTS[idx].label;
+                      if (label === 'Daily Standup') {
+                        const today = todayISO();
+                        setStartDate(today);
+                        setEndDate(today);
+                      } else if (label === 'Weekly Report' || label === 'AI Usage') {
+                        setStartDate(daysAgoISO(7));
+                        setEndDate(todayISO());
+                      }
                     }}
                     className="w-full rounded-xl border border-input bg-muted/50 px-3 py-2 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-ring/20 transition-all cursor-pointer"
                   >

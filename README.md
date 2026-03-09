@@ -12,7 +12,7 @@
 - **📅 Date Navigation** — Browse past logs with a calendar picker. Dates that have content show a dot indicator. Use ← / → to step day by day, or click **Today** to jump back.
 - **🪄 Linkify** — Click **🪄 Linkify** to resolve bare GitHub URLs to titled markdown links. Updates the log in-place.
 - **✨ AI Assistant** — A unified modal (toolbar ✨ button) with two modes:
-  - **📊 Summarize** — Generate AI-powered summaries of your work logs for daily standups or weekly reports. Choose the AI model, pick a date range, and **save summaries** directly to your repo in `summaries/`.
+  - **📊 Summarize** — Generate AI-powered summaries of your work logs for daily standups or weekly reports. Choose the AI model, pick a date range, and **save summaries** directly to your repo in `summaries/`. Preset templates (Daily Standup, Weekly Report, Detailed Changelog, AI Usage) auto-fill the date range — weekly presets set the start date to 7 days ago.
   - **🔍 Search** — Natural language search across your work logs. Ask questions like "What did I work on last week?" or "Find all examples of pairing sessions." The search automatically classifies your query into one of three strategies:
     - **Exhaustive** — queries like "find all examples of X" or "every time I mentioned Y" search through ALL available logs to find every instance.
     - **Date-bounded** — queries with time constraints like "last two weeks" or "in February" search only the specified range.
