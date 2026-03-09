@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { X, AlertTriangle } from 'lucide-react';
+import { X, AlertTriangle, ChevronDown, Check, Copy, Download } from 'lucide-react';
 
 const DEFAULT_PROMPTS = [
   { label: 'Daily Standup', value: 'Summarize my work for a daily standup meeting. Focus on what was completed, what is in progress, and any blockers.' },
@@ -31,7 +31,16 @@ export default function SummaryModal({ isOpen, onClose, defaultDate, isDemo = fa
   const [saving, setSaving] = useState(false);
   const [result, setResult] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [downloaded, setDownloaded] = useState(false);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -86,7 +95,8 @@ export default function SummaryModal({ isOpen, onClose, defaultDate, isDemo = fa
   const saveToRepo = async () => {
     if (!result) return;
     if (isDemo) {
-      alert("In demo mode, this would save to: summaries/" + endDate + "-summary.md");
+      setSaveMessage("Demo mode — would save to: summaries/" + endDate + "-summary.md");
+      setTimeout(() => { if (mountedRef.current) setSaveMessage(null); }, 4000);
       return;
     }
     setSaving(true);
@@ -117,7 +127,8 @@ export default function SummaryModal({ isOpen, onClose, defaultDate, isDemo = fa
         
         const data = await res.json();
         const msg = data.committed ? 'Saved and pushed to repo!' : 'Saved to disk (commit skipped/failed).';
-        alert(`${msg}\nFile: summaries/${filename}`);
+        setSaveMessage(`${msg} — summaries/${filename}`);
+        setTimeout(() => { if (mountedRef.current) setSaveMessage(null); }, 4000);
     } catch (err) {
         console.error(err);
         setError('Failed to save summary to repository.');
@@ -126,8 +137,15 @@ export default function SummaryModal({ isOpen, onClose, defaultDate, isDemo = fa
     }
   };
 
-  const copyToClipboard = () => {
-    if (result) navigator.clipboard.writeText(result);
+  const copyToClipboard = async () => {
+    if (!result) return;
+    try {
+      await navigator.clipboard.writeText(result);
+      setCopied(true);
+      setTimeout(() => { if (mountedRef.current) setCopied(false); }, 2000);
+    } catch {
+      setError('Failed to copy to clipboard.');
+    }
   };
 
   const downloadMarkdown = () => {
@@ -141,6 +159,8 @@ export default function SummaryModal({ isOpen, onClose, defaultDate, isDemo = fa
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+    setDownloaded(true);
+    setTimeout(() => { if (mountedRef.current) setDownloaded(false); }, 2000);
   };
 
   return (
@@ -181,28 +201,34 @@ export default function SummaryModal({ isOpen, onClose, defaultDate, isDemo = fa
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label htmlFor="summary-prompt-template" className="block text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wider">Prompt Template</label>
-              <select
-                id="summary-prompt-template"
-                onChange={(e) => handlePromptChange(e.target.value)}
-                className="w-full rounded-xl border border-input bg-muted/50 px-3 py-2 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-ring/20 transition-all cursor-pointer"
-              >
-                {DEFAULT_PROMPTS.map((p, idx) => (
-                  <option key={idx} value={p.value}>{p.label}</option>
-                ))}
-              </select>
+              <div className="relative">
+                <select
+                  id="summary-prompt-template"
+                  onChange={(e) => handlePromptChange(e.target.value)}
+                  className="w-full appearance-none rounded-xl border border-input bg-muted/50 pl-3 pr-9 py-2 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-ring/20 transition-all cursor-pointer"
+                >
+                  {DEFAULT_PROMPTS.map((p, idx) => (
+                    <option key={idx} value={p.value}>{p.label}</option>
+                  ))}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
+              </div>
             </div>
             <div>
               <label htmlFor="summary-model" className="block text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wider">AI Model</label>
-              <select
-                id="summary-model"
-                value={selectedModel}
-                onChange={(e) => setSelectedModel(e.target.value)}
-                className="w-full rounded-xl border border-input bg-muted/50 px-3 py-2 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-ring/20 transition-all cursor-pointer"
-              >
-                {MODELS.map((m) => (
-                  <option key={m.value} value={m.value}>{m.label}</option>
-                ))}
-              </select>
+              <div className="relative">
+                <select
+                  id="summary-model"
+                  value={selectedModel}
+                  onChange={(e) => setSelectedModel(e.target.value)}
+                  className="w-full appearance-none rounded-xl border border-input bg-muted/50 pl-3 pr-9 py-2 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-ring/20 transition-all cursor-pointer"
+                >
+                  {MODELS.map((m) => (
+                    <option key={m.value} value={m.value}>{m.label}</option>
+                  ))}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
+              </div>
             </div>
           </div>
 
@@ -245,20 +271,20 @@ export default function SummaryModal({ isOpen, onClose, defaultDate, isDemo = fa
               <>
                 <button
                   onClick={copyToClipboard}
-                  className="rounded-xl px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:shadow-sm border border-transparent hover:border-border transition-all"
+                  className={`rounded-xl px-4 py-2 text-sm font-medium flex items-center gap-1.5 cursor-pointer transition-all ${copied ? 'text-emerald-500 border border-emerald-500/30 bg-emerald-500/10' : 'text-muted-foreground border border-border bg-muted/50 hover:bg-muted hover:shadow-sm'}`}
                 >
-                  Copy
+                  {copied ? <><Check className="h-3.5 w-3.5" aria-hidden="true" />Copied!</> : <><Copy className="h-3.5 w-3.5" aria-hidden="true" />Copy</>}
                 </button>
                 <button
                   onClick={downloadMarkdown}
-                  className="rounded-xl px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:shadow-sm border border-transparent hover:border-border transition-all"
+                  className={`rounded-xl px-4 py-2 text-sm font-medium flex items-center gap-1.5 cursor-pointer transition-all ${downloaded ? 'text-emerald-500 border border-emerald-500/30 bg-emerald-500/10' : 'text-muted-foreground border border-border bg-muted/50 hover:bg-muted hover:shadow-sm'}`}
                 >
-                  Download .md
+                  {downloaded ? <><Check className="h-3.5 w-3.5" aria-hidden="true" />Downloaded!</> : <><Download className="h-3.5 w-3.5" aria-hidden="true" />Download .md</>}
                 </button>
                 <button
                   onClick={saveToRepo}
                   disabled={saving}
-                  className="rounded-xl px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:shadow-sm border border-transparent hover:border-border transition-all disabled:opacity-50"
+                  className="rounded-xl px-4 py-2 text-sm font-medium text-muted-foreground border border-border bg-muted/50 hover:bg-muted hover:shadow-sm cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {saving ? 'Committing...' : 'Save & Commit'}
                 </button>
@@ -273,6 +299,11 @@ export default function SummaryModal({ isOpen, onClose, defaultDate, isDemo = fa
             {loading ? 'Generating...' : 'Generate Summary'}
           </button>
         </div>
+        {saveMessage && (
+          <div className="border-t border-border px-6 py-3 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-sm flex items-center gap-2">
+            <Check className="h-4 w-4 shrink-0" aria-hidden="true" /> {saveMessage}
+          </div>
+        )}
       </div>
     </div>
   );
