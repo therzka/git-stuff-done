@@ -29,9 +29,11 @@ Respond with ONLY a JSON object (no markdown, no code fences) in this exact form
 {"mode": "<mode>", "startDate": "<YYYY-MM-DD or null>", "endDate": "<YYYY-MM-DD or null>"}
 
 Modes:
-- "exhaustive": The user wants ALL instances/examples across their entire history. Keywords: "all", "every time", "each time", "how many times", "list all", "find all", "all examples", "all instances", "whenever".
-- "date_bounded": The user specifies a time range. Resolve relative dates to absolute dates using today's date. Examples: "last week", "last two weeks", "in February", "since January", "this month", "yesterday".
-- "recent_first": The user wants the most recent match or general info without a specific range. This is the DEFAULT if unclear. Examples: "when did I last...", "what am I working on", "what happened with X".
+- "exhaustive": The user wants ALL instances/examples across their ENTIRE history with NO time constraint. Keywords: "all", "every time", "each time", "how many times", "list all", "find all", "all examples", "all instances", "whenever". Only use this when there is NO time range specified.
+- "date_bounded": The user specifies or implies a time range. This ALSO applies when the user wants comprehensive/exhaustive results WITHIN a time period (e.g. "how many times since January", "every standup this year"). Resolve relative dates to absolute dates using today's date. Examples: "last week", "last two weeks", "in February", "since January", "this month", "yesterday", "this year", "since the beginning of the year".
+- "recent_first": The user wants the most recent match or general info without a specific range. This is the DEFAULT only when neither exhaustive nor date_bounded applies. Examples: "when did I last...", "what am I working on", "what happened with X".
+
+IMPORTANT: When a query combines exhaustive intent ("how many times", "every", "list all") WITH a time range ("since January", "this year", "last month"), ALWAYS use "date_bounded" with the correct dates — NOT "exhaustive" or "recent_first".
 
 Examples:
 Q: "find all examples of pairing sessions" → {"mode": "exhaustive", "startDate": null, "endDate": null}
@@ -39,6 +41,9 @@ Q: "what did I work on last week" → {"mode": "date_bounded", "startDate": "...
 Q: "every time I mentioned the auth migration" → {"mode": "exhaustive", "startDate": null, "endDate": null}
 Q: "when did I last meet with Sarah" → {"mode": "recent_first", "startDate": null, "endDate": null}
 Q: "find when I discussed X in the last two weeks" → {"mode": "date_bounded", "startDate": "...", "endDate": "..."}
+Q: "how many times have I paired with X since January" → {"mode": "date_bounded", "startDate": "${todayDate.slice(0, 4)}-01-01", "endDate": "${todayDate}"}
+Q: "list every standup this year" → {"mode": "date_bounded", "startDate": "${todayDate.slice(0, 4)}-01-01", "endDate": "${todayDate}"}
+Q: "all the times I mentioned Y since the beginning of the year" → {"mode": "date_bounded", "startDate": "${todayDate.slice(0, 4)}-01-01", "endDate": "${todayDate}"}
 
 User question: "${query}"`;
 
