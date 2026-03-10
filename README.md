@@ -24,6 +24,7 @@
 - **✅ TODO List** — Manual TODOs with inline editing + AI-suggested action items based on your work log.
 - **🔀 My PRs** — Live feed of your open PRs (authored or assigned) in your GitHub org with status badges: **Copilot** (authored by Copilot, you're an assignee), **Draft**, **Queued** / **Merging** (merge queue), **CI Failing** (required checks only), **Needs Review** (awaiting human review), and **unanswered comment count** (excludes bots and resolved threads). Click the insert button on any PR to paste its link at the cursor in your work log.
 - **🐛 My Issues** — Open issues assigned to you across your GitHub org, showing labels (toggleable) and comment counts. Linked PRs appear as chips styled by state (open/draft/merged/closed). Click the insert button to paste a link at the cursor in your work log.
+- **🤖 Assign to Copilot** — From the My Issues panel, hover over any issue without a linked PR and click the Copilot icon to assign it to the GitHub Copilot coding agent. A modal lets you select the **target repository** (where the PR will be created — useful when issues live in a tracker repo but code lives elsewhere), the **AI model** for Copilot to use, and provide **additional instructions**. Issues already assigned to Copilot show a "Copilot" badge. Uses the GitHub REST API with the `agent_assignment` parameter for cross-repo PR creation.
 - **🔔 Notifications** — Filtered GitHub notifications: reviews requested, mentions, assignments, and activity on your issues/PRs. Click the insert button to paste a link at the cursor. Dismiss individual notifications with the X button (reappear on reload).
 - **🚀 Auto-commit & Push** — Hourly auto-commit of your logs and TODOs to a git repo, with push to remote.
 - **⚙️ Settings** — Ignore noisy repos in notifications.
@@ -53,11 +54,12 @@
 
    > ⚠️ Do not clone this repo directly — the auto-commit feature pushes to the git remote, and you won't have push access to the original repo.
 
-2. **Create a read-only GitHub PAT:**
+2. **Create a GitHub PAT:**
 
    Go to https://github.com/settings/personal-access-tokens/new and create a fine-grained token with:
    - **Repository access:** Public repositories (or select specific repos if needed)
-   - **Permissions:** `Issues` → Read-only, `Pull requests` → Read-only, `Notifications` → Read-only
+   - **Permissions:** `Issues` → Read & Write, `Pull requests` → Read & Write, `Notifications` → Read-only, `Actions` → Read & Write, `Contents` → Read & Write
+   - Read-only access is sufficient for viewing PRs, issues, and notifications. **Write access** is required for the "Assign to Copilot" feature (assigning issues, creating comments, and triggering the Copilot coding agent).
 
    If your org requires SSO, click **Configure SSO** → **Authorize** for your org after creating the token.
 
@@ -95,7 +97,7 @@
 | Variable                  | Default                           | Description                                                                                                                                   |
 | ------------------------- | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
 | `GITHUB_ORG`              | _(none)_                          | GitHub org to filter notifications, PRs, and links                                                                                            |
-| `GITHUB_READ_TOKEN`       | _(falls back to `gh auth token`)_ | Read-only GitHub token ([create one](https://github.com/settings/personal-access-tokens/new) with Issues, PRs, and Notifications read access) |
+| `GITHUB_READ_TOKEN`       | _(falls back to `gh auth token`)_ | GitHub token ([create one](https://github.com/settings/personal-access-tokens/new) with Issues, PRs, Notifications, Actions, Contents — write access needed for Copilot assignment) |
 | `GIT_STUFF_DONE_DATA_DIR` | `./` (app dir)                    | Path to a git repo where `logs/` and `data/` will be stored                                                                                   |
 
 ## How It Works
