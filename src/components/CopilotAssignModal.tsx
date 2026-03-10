@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { X, ChevronDown, AlertTriangle, Check, Search } from "lucide-react";
+import { X, ChevronDown, AlertTriangle, Check } from "lucide-react";
+import { Combobox, ComboboxInput, ComboboxOption, ComboboxOptions } from "@headlessui/react";
 import { useModels } from "@/hooks/useModels";
 
 type OrgRepo = {
@@ -44,6 +45,7 @@ export default function CopilotAssignModal({
   const mountedRef = useRef(true);
   const repoListRef = useRef<HTMLDivElement>(null);
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const repoCacheRef = useRef<Map<string, { repos: OrgRepo[]; hasMore: boolean }>>(new Map());
 
   useEffect(() => {
     mountedRef.current = true;
@@ -55,6 +57,17 @@ export default function CopilotAssignModal({
   // Fetch repos (paginated, with optional search query)
   const fetchRepos = useCallback(
     async (page: number, query: string, append: boolean) => {
+      const cacheKey = `${query}::${page}`;
+
+      // Check cache first
+      const cached = repoCacheRef.current.get(cacheKey);
+      if (cached && !append) {
+        setRepos(cached.repos);
+        setRepoHasMore(cached.hasMore);
+        setRepoPage(page);
+        return;
+      }
+
       if (append) setReposLoadingMore(true);
       else setReposLoading(true);
 
@@ -65,8 +78,13 @@ export default function CopilotAssignModal({
         const data = await res.json();
         if (!mountedRef.current) return;
         const incoming: OrgRepo[] = data.repos ?? [];
+        const hasMore = data.hasMore ?? false;
+
+        // Cache the result
+        repoCacheRef.current.set(cacheKey, { repos: append ? [] : incoming, hasMore });
+
         setRepos((prev) => (append ? [...prev, ...incoming] : incoming));
-        setRepoHasMore(data.hasMore ?? false);
+        setRepoHasMore(hasMore);
         setRepoPage(page);
       } catch {
         // ignore
@@ -251,63 +269,55 @@ export default function CopilotAssignModal({
           {/* Target repo */}
           <div>
             <label
-              htmlFor="copilot-target-repo"
               className="block text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wider"
             >
               Target Repository <span className="text-destructive">*</span>
             </label>
-            <div className="relative mb-2">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
-              <input
-                type="text"
-                value={repoSearch}
-                onChange={(e) => handleRepoSearch(e.target.value)}
-                placeholder="Search repos…"
-                className="w-full rounded-xl border border-input bg-muted/50 pl-8 pr-3 py-2 text-sm text-foreground placeholder-muted-foreground outline-none focus:border-primary focus:ring-2 focus:ring-ring/20 transition-all"
-              />
-            </div>
-            <div
-              ref={repoListRef}
-              onScroll={handleRepoScroll}
-              className="max-h-36 overflow-y-auto rounded-xl border border-input bg-muted/50"
+            <Combobox
+              value={selectedRepo}
+              onChange={(val) => setSelectedRepo(val ?? "")}
+              immediate
             >
-              {reposLoading ? (
-                <div className="px-3 py-2 text-sm text-muted-foreground">
-                  Loading…
-                </div>
-              ) : repos.length === 0 ? (
-                <div className="px-3 py-2 text-sm text-muted-foreground">
-                  {repoSearch ? "No repos found" : "No repos available"}
-                </div>
-              ) : (
-                <>
+              <div className="relative">
+                <ComboboxInput
+                  className="w-full rounded-xl border border-input bg-muted/50 px-3 py-2 text-sm text-foreground placeholder-muted-foreground outline-none focus:border-primary focus:ring-2 focus:ring-ring/20 transition-all data-[open]:rounded-b-none data-[open]:border-b-0"
+                  placeholder="Search repos…"
+                  displayValue={(val: string) => val}
+                  onChange={(e) => handleRepoSearch(e.target.value)}
+                />
+                {reposLoading && (
+                  <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+                    Loading…
+                  </div>
+                )}
+                <ComboboxOptions
+                  ref={repoListRef}
+                  onScroll={handleRepoScroll}
+                  className="absolute left-0 right-0 top-full z-10 max-h-48 overflow-y-auto rounded-b-xl border border-t-0 border-input bg-popover shadow-lg empty:hidden"
+                >
+                  {!reposLoading && repos.length === 0 && (
+                    <div className="px-3 py-2 text-sm text-muted-foreground">
+                      {repoSearch ? "No repos found" : "No repos available"}
+                    </div>
+                  )}
                   {repos.map((r) => (
-                    <button
+                    <ComboboxOption
                       key={r.fullName}
-                      onClick={() => setSelectedRepo(r.fullName)}
-                      className={`w-full text-left px-3 py-2 text-sm transition-colors flex items-center gap-2 ${
-                        selectedRepo === r.fullName
-                          ? "bg-primary/10 text-primary font-medium"
-                          : "text-foreground hover:bg-muted"
-                      }`}
+                      value={r.fullName}
+                      className="group flex items-center gap-2 px-3 py-2 text-sm text-foreground data-[focus]:bg-primary/10 data-[focus]:text-primary data-[selected]:font-medium transition-colors"
                     >
-                      {selectedRepo === r.fullName && (
-                        <Check
-                          className="h-3.5 w-3.5 shrink-0"
-                          aria-hidden="true"
-                        />
-                      )}
+                      <Check className="h-3.5 w-3.5 shrink-0 opacity-0 group-data-[selected]:opacity-100" aria-hidden="true" />
                       <span className="truncate">{r.fullName}</span>
-                    </button>
+                    </ComboboxOption>
                   ))}
                   {reposLoadingMore && (
                     <div className="px-3 py-2 text-xs text-muted-foreground text-center">
                       Loading more…
                     </div>
                   )}
-                </>
-              )}
-            </div>
+                </ComboboxOptions>
+              </div>
+            </Combobox>
           </div>
 
           {/* Model selector */}

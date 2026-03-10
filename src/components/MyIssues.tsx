@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { MessageSquare, CheckCircle, Tag } from "lucide-react";
 import { DEMO_ISSUES } from "@/lib/demo";
 import { useVisibilityPolling } from "@/hooks/useVisibilityPolling";
+import { isCopilotLogin, COPILOT_AGENT_LOGIN } from "@/lib/constants";
 import CopilotAssignModal from "./CopilotAssignModal";
 
 type Issue = {
@@ -143,10 +144,7 @@ export default function MyIssues({
                 (pr) => pr.state === "OPEN" || pr.state === "MERGED",
               );
               const copilotAssigned = (issue.assignees ?? []).some(
-                (a) =>
-                  a === "copilot-swe-agent" ||
-                  a === "copilot-swe-agent[bot]" ||
-                  a === "copilot",
+                (a) => isCopilotLogin(a),
               );
               const showCopilotBtn =
                 !isDemo && !hasOpenPR && !copilotAssigned;
@@ -298,7 +296,7 @@ export default function MyIssues({
             setIssues((prev) => {
               const updated = prev.map((iss) =>
                 iss.id === copilotIssue.id
-                  ? { ...iss, assignees: [...(iss.assignees ?? []), "copilot-swe-agent"] }
+                  ? { ...iss, assignees: [...(iss.assignees ?? []), COPILOT_AGENT_LOGIN] }
                   : iss,
               );
               _issueCache = updated;

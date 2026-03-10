@@ -1,4 +1,4 @@
-import { GITHUB_ORG } from "./constants";
+import { COPILOT_AGENT_LOGIN, GITHUB_ORG, isCopilotLogin } from "./constants";
 import { Octokit } from "@octokit/rest";
 import { execFileSync } from "child_process";
 import { readConfig } from "./files";
@@ -366,7 +366,7 @@ export async function fetchMyPRs(): Promise<MyPullRequest[]> {
         const isBot = (login: string) =>
           !login ||
           login.endsWith("[bot]") ||
-          login === "copilot" ||
+          isCopilotLogin(login) ||
           login === "github-copilot";
 
         pr.unresolvedThreads = (gql.reviewThreads?.nodes ?? []).filter((t) => {
@@ -638,9 +638,12 @@ export async function fetchOrgRepos(opts?: {
   const query = opts?.query?.trim();
 
   if (query) {
+    // Strip org prefix if user types "org/repo-name"
+    const searchTerm = query.includes("/") ? query.split("/").pop()! : query;
+
     // Use search API for type-ahead
     const { data } = await octokit.search.repos({
-      q: `${query} in:name org:${GITHUB_ORG}`,
+      q: `${searchTerm} org:${GITHUB_ORG}`,
       sort: "updated",
       order: "desc",
       per_page: perPage,
@@ -694,7 +697,7 @@ export async function assignCopilotToIssue(opts: {
     ? [...systemDirectives, "", opts.instructions].join("\n")
     : systemDirectives.join("\n");
 
-  // Assign copilot-swe-agent[bot] with agent_assignment params
+  // Assign Copilot coding agent with agent_assignment params
   try {
     await octokit.request(
       "POST /repos/{owner}/{repo}/issues/{issue_number}/assignees",
@@ -702,7 +705,7 @@ export async function assignCopilotToIssue(opts: {
         owner: opts.owner,
         repo: opts.repo,
         issue_number: opts.issueNumber,
-        assignees: ["copilot-swe-agent[bot]"],
+        assignees: [COPILOT_AGENT_LOGIN],
         agent_assignment: {
           target_repo: opts.targetRepo,
           model: opts.model || "",

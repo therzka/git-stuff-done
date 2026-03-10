@@ -1,4 +1,5 @@
 import { TodoItem } from "@/lib/files";
+import { COPILOT_AGENT_LOGIN } from "@/lib/constants";
 
 export const DEMO_LOG_CONTENT = `
 - **Project: Analytics Dashboard**
@@ -193,7 +194,7 @@ export const DEMO_ISSUES = [
     labels: ["enhancement"],
     commentCount: 1,
     author: "pm-lead",
-    assignees: ["you", "copilot-swe-agent"],
+    assignees: ["you", COPILOT_AGENT_LOGIN],
     linkedPRs: [
       { number: 90, title: "feat: dark mode email templates (WIP)", url: "#", state: "OPEN", isDraft: true },
     ],
