@@ -30,13 +30,13 @@ function timeAgo(dateString: string): string {
 }
 
 const reasonColors: Record<string, string> = {
-  review_requested: 'bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-400',
-  comment: 'bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-400',
-  mention: 'bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-400',
-  assign: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400',
-  subscribed: 'bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400',
-  author: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400',
-  ci_activity: 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-400',
+  review_requested: 'bg-orange-50 text-orange-700 ring-1 ring-inset ring-orange-600/20 dark:bg-orange-500/10 dark:text-orange-400 dark:ring-orange-500/20',
+  comment: 'bg-sky-50 text-sky-700 ring-1 ring-inset ring-sky-600/20 dark:bg-sky-500/10 dark:text-sky-400 dark:ring-sky-500/20',
+  mention: 'bg-sky-50 text-sky-700 ring-1 ring-inset ring-sky-600/20 dark:bg-sky-500/10 dark:text-sky-400 dark:ring-sky-500/20',
+  assign: 'bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20 dark:bg-emerald-500/10 dark:text-emerald-400 dark:ring-emerald-500/20',
+  subscribed: 'bg-zinc-50 text-zinc-600 ring-1 ring-inset ring-zinc-500/20 dark:bg-zinc-500/10 dark:text-zinc-400 dark:ring-zinc-500/20',
+  author: 'bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-600/20 dark:bg-amber-500/10 dark:text-amber-400 dark:ring-amber-500/20',
+  ci_activity: 'bg-rose-50 text-rose-700 ring-1 ring-inset ring-rose-600/20 dark:bg-rose-500/10 dark:text-rose-400 dark:ring-rose-500/20',
 };
 
 function reasonBadge(reason: string) {

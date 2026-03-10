@@ -214,12 +214,12 @@ export default function MyIssues({
                               title={pr.title}
                               className={`inline-flex items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[10px] font-medium transition-opacity hover:opacity-80 ${
                                 isMerged
-                                  ? "border-purple-400/40 bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300 dark:border-purple-700/50"
+                                  ? "border-purple-300 bg-purple-50 text-purple-700 dark:bg-purple-500/10 dark:text-purple-400 dark:border-purple-500/30"
                                   : isClosed
                                     ? "border-border bg-muted text-muted-foreground"
                                     : isDraft
                                       ? "border-border bg-muted text-muted-foreground"
-                                      : "border-emerald-500/40 bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400 dark:border-emerald-700/50"
+                                      : "border-emerald-300 bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/30"
                               }`}
                             >
                               <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">

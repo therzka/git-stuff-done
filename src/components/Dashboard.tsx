@@ -5,13 +5,14 @@ import { createPortal } from 'react-dom';
 import { useTheme } from 'next-themes';
 import { useSearchParams } from 'next/navigation';
 import { Panel, Group as PanelGroup, Separator as PanelResizeHandle } from 'react-resizable-panels';
-import { Upload, Moon, Sun, BarChart2, Search, Settings, LayoutGrid, AlignJustify, Menu, X, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
+import { Upload, Moon, Sun, BarChart2, Search, Settings, LayoutGrid, AlignJustify, Menu, X, ChevronLeft, ChevronRight, FileText, Sparkles } from 'lucide-react';
 import RawWorkLog from './RawWorkLog';
 import TodoList from './TodoList';
 import MyPRs from './MyPRs';
 import MyIssues from './MyIssues';
 import GitHubNotifications from './GitHubNotifications';
 import AiModal from './AiModal';
+import SummariesModal from './SummariesModal';
 import CalendarPicker from './CalendarPicker';
 import { GITHUB_ORG } from '@/lib/constants';
 
@@ -58,6 +59,7 @@ export default function Dashboard() {
   const aiMenuBtnRef = useRef<HTMLButtonElement>(null);
   const aiMenuRef = useRef<HTMLDivElement>(null);
   const [aiMenuPos, setAiMenuPos] = useState({ top: 0, left: 0 });
+  const [showSummaries, setShowSummaries] = useState(false);
   const insertAtCursorRef = useRef<((text: string) => void) | null>(null);
 
   // Layout & panel visibility
@@ -272,6 +274,14 @@ export default function Dashboard() {
             <Sparkles className="h-4 w-4" aria-hidden="true" />
           </button>
           <button
+            onClick={() => setShowSummaries(true)}
+            className="rounded-lg px-2 py-1.5 text-sm text-muted-foreground transition hover:bg-accent hover:text-accent-foreground"
+            aria-label="Saved Summaries"
+            title="View Saved Summaries"
+          >
+            <FileText className="h-4 w-4" aria-hidden="true" />
+          </button>
+          <button
             onClick={() => setShowSettings((s) => !s)}
             className="rounded-lg px-2 py-1.5 text-sm text-muted-foreground transition hover:bg-accent hover:text-accent-foreground"
             aria-label="Settings"
@@ -361,6 +371,12 @@ export default function Dashboard() {
         onClose={() => setAiModalTab(null)}
         defaultTab={aiModalTab ?? 'search'}
         defaultDate={date}
+        isDemo={isDemo}
+      />
+
+      <SummariesModal
+        isOpen={showSummaries}
+        onClose={() => setShowSummaries(false)}
         isDemo={isDemo}
       />
 
