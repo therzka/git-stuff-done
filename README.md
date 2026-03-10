@@ -15,9 +15,9 @@
 - **🔍 Natural Language Search** — AI-powered search across your work logs. Ask questions like "What did I work on last week?" or "Find all examples of pairing sessions." The search automatically classifies your query into one of three strategies:
   - **Exhaustive** — queries like "find all examples of X" or "every time I mentioned Y" search through ALL available logs to find every instance.
   - **Date-bounded** — queries with time constraints like "last two weeks" or "in February" search only the specified range.
-  - **Recent-first** — general queries progressively look back in 7-day increments (up to 365 days), ideal for "when did I last…" style questions with resumable deep lookback.
+  - **Recent-first** — general queries search independent 7-day windows progressively (up to 365 days), sending only each new window to the AI for efficiency. GitHub context is cached across iterations to avoid redundant API calls. Ideal for "when did I last…" style questions with resumable deep lookback.
 
-  The search API streams results via NDJSON, so you see real-time progress in the UI — query classification, log loading, batch progress, and AI call status update live as the search runs. Follows GitHub links in your logs for additional context and never fabricates answers. Includes a model selector.
+  The search API streams results via NDJSON, so you see real-time progress in the UI — query classification, log loading, batch progress, and AI call status update live as the search runs. Query classification uses a fast model internally regardless of the user-selected model. Follows GitHub links in your logs for additional context and never fabricates answers. Includes a model selector.
 
 - **🤖 Dynamic Model Loading** — Available AI models are loaded from the Copilot SDK at runtime and cached for 24 hours. Falls back to a built-in default list if the SDK is unavailable.
 - **📋 Saved Summaries** — Browse, preview, copy, and delete past AI-generated summaries. Opens from the toolbar 📋 button. Summaries render as rich text with markdown-on-copy.

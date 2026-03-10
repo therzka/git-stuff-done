@@ -321,7 +321,8 @@ async function searchDateBounded(
 
 /**
  * Recent-first search: iterative windowed approach, stops on first answer.
- * This is the original search strategy, ideal for recency-biased queries.
+ * Each iteration only sends the NEW window's logs to the AI (not all accumulated).
+ * GitHub context is cached across iterations to avoid redundant API calls.
  */
 async function searchRecentFirst(
   query: string,
@@ -333,10 +334,11 @@ async function searchRecentFirst(
 ) {
   emit({ type: 'progress', message: 'Searching recent logs...', daysSearched: offsetDays, searchMode: 'recent_first' });
   console.log(`[search] recent_first: starting from offset ${offsetDays} days`);
-  const allLogs: string[] = [];
-  const allUrls = new Set<string>();
   let daysSearched = offsetDays;
   let answer: string | null = null;
+
+  // Cache GitHub context across iterations to avoid re-fetching
+  const githubContextCache = new Map<string, GitHubContextItem>();
 
   for (let iter = 0; iter < MAX_ITERATIONS_PER_REQUEST; iter++) {
     const windowEnd = new Date(today);
@@ -347,22 +349,16 @@ async function searchRecentFirst(
     const startStr = formatDate(windowStart);
     const endStr = formatDate(windowEnd);
 
-    const newLogs = await loadLogsForRange(startStr, endStr);
-    allLogs.push(...newLogs);
+    const windowLogs = await loadLogsForRange(startStr, endStr);
     daysSearched += WINDOW_SIZE;
-    console.log(`[search] recent_first: iter ${iter + 1}/${MAX_ITERATIONS_PER_REQUEST}, window ${startStr}..${endStr}, +${newLogs.length} logs (total ${allLogs.length})`);
-    emit({ type: 'progress', message: `Looked back ${daysSearched} days (${allLogs.length} log entries)...`, daysSearched, searchMode: 'recent_first' });
+    console.log(`[search] recent_first: iter ${iter + 1}/${MAX_ITERATIONS_PER_REQUEST}, window ${startStr}..${endStr}, ${windowLogs.length} logs`);
+    emit({ type: 'progress', message: `Looked back ${daysSearched} days...`, daysSearched, searchMode: 'recent_first' });
 
-    for (const log of newLogs) {
-      const urls = await extractGitHubUrls(log);
-      urls.forEach((u) => allUrls.add(u));
-    }
-
-    if (allLogs.length === 0 && daysSearched < MAX_LOOKBACK_DAYS) {
+    if (windowLogs.length === 0 && daysSearched < MAX_LOOKBACK_DAYS) {
       continue;
     }
 
-    if (allLogs.length === 0) {
+    if (windowLogs.length === 0) {
       console.log(`[search] recent_first: no logs found after ${daysSearched} days`);
       emit({
         type: 'complete',
@@ -374,22 +370,40 @@ async function searchRecentFirst(
       return;
     }
 
+    // Only fetch GitHub context for new URLs not already cached
+    const newUrls: string[] = [];
+    for (const log of windowLogs) {
+      const urls = await extractGitHubUrls(log);
+      for (const u of urls) {
+        if (!githubContextCache.has(u)) {
+          newUrls.push(u);
+        }
+      }
+    }
+
+    if (newUrls.length > 0) {
+      const newContext = await fetchGitHubContext(newUrls);
+      for (const item of newContext) {
+        githubContextCache.set(item.url, item);
+      }
+    }
+
     emit({ type: 'progress', message: `Searching with AI (${daysSearched} days so far)...`, daysSearched, searchMode: 'recent_first' });
-    const githubContext = await fetchGitHubContext(Array.from(allUrls));
-    const totalChars = allLogs.reduce((sum, l) => sum + l.length, 0);
-    const searchWindow = `Searching from ${formatDate(
-      new Date(today.getTime() - daysSearched * 86400000),
-    )} to ${todayDate} (${daysSearched} days)`;
+
+    // Only send this window's logs, but include all cached GitHub context
+    const allGithubContext = Array.from(githubContextCache.values());
+    const totalChars = windowLogs.reduce((sum, l) => sum + l.length, 0);
+    const searchWindow = `Searching from ${startStr} to ${endStr} (${WINDOW_SIZE}-day window, ${daysSearched} total days searched)`;
 
     const systemPrompt = buildSystemPrompt(todayDate, 'recent_first');
     const userPrompt = buildUserPrompt(
       query,
-      allLogs,
-      githubContext,
+      windowLogs,
+      allGithubContext,
       searchWindow,
     );
 
-    console.log(`[search] recent_first: AI call with ${totalChars} chars, ${githubContext.length} context items`);
+    console.log(`[search] recent_first: AI call with ${totalChars} chars, ${allGithubContext.length} context items`);
     const aiStart = Date.now();
     const result = await callCopilot(systemPrompt, userPrompt, model, SEARCH_TIMEOUT_MS);
     const needMore = result.includes(NEED_MORE_CONTEXT);
@@ -460,7 +474,7 @@ export async function POST(req: Request) {
   return createSearchStream(async (emit) => {
     emit({ type: 'progress', message: 'Classifying query...' });
     const classifyStart = Date.now();
-    const classification = await classifySearchQuery(query, todayDate, model);
+    const classification = await classifySearchQuery(query, todayDate);
     console.log(`[search] classified as ${classification.mode} in ${Date.now() - classifyStart}ms`, classification.startDate ? `range=${classification.startDate}..${classification.endDate}` : '');
 
     switch (classification.mode) {
