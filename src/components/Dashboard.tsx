@@ -72,6 +72,7 @@ export default function Dashboard() {
   const [showSearch, setShowSearch] = useState(false);
   const [showSummaries, setShowSummaries] = useState(false);
   const insertAtCursorRef = useRef<((text: string) => void) | null>(null);
+  const commitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Layout & panel visibility
   const [layout, setLayout] = useState<LayoutMode>(loadLayout);
@@ -185,15 +186,20 @@ export default function Dashboard() {
   }
 
   async function handleCommit() {
+    if (commitTimerRef.current) clearTimeout(commitTimerRef.current);
     setCommitState('committing');
     try {
       const res = await fetch('/api/commit', { method: 'POST' });
-      const data = await res.json();
-      setCommitState(data.committed ? 'success' : 'no-changes');
+      if (!res.ok) {
+        setCommitState('error');
+      } else {
+        const data = await res.json();
+        setCommitState(data.committed ? 'success' : 'no-changes');
+      }
     } catch {
       setCommitState('error');
     }
-    setTimeout(() => setCommitState('idle'), 3000);
+    commitTimerRef.current = setTimeout(() => setCommitState('idle'), 3000);
   }
 
   return (
