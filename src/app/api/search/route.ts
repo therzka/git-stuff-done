@@ -15,6 +15,15 @@ const EXHAUSTIVE_CHUNK_DAYS = 60;
 const MAX_SINGLE_SHOT_CHARS = 80_000;
 const SEARCH_TIMEOUT_MS = 180_000; // 3 minutes for large search prompts
 
+/** Throw if the client has disconnected (aborted the request). */
+function throwIfAborted(signal: AbortSignal) {
+  if (signal.aborted) {
+    const err = new Error('Search aborted');
+    err.name = 'AbortError';
+    throw err;
+  }
+}
+
 const NEED_MORE_CONTEXT = 'NEED_MORE_CONTEXT';
 
 /** Response is purely a "need more context" signal (token at start, no real content before it) */
@@ -42,7 +51,8 @@ type SearchEvent =
 type Emit = (event: SearchEvent) => void;
 
 function createSearchStream(
-  searchFn: (emit: Emit) => Promise<void>,
+  searchFn: (emit: Emit, signal: AbortSignal) => Promise<void>,
+  signal: AbortSignal,
 ): Response {
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
@@ -57,9 +67,9 @@ function createSearchStream(
         }
       };
       try {
-        await searchFn(emit);
+        await searchFn(emit, signal);
       } catch (err) {
-        if (!closed) {
+        if (!closed && (err as Error).name !== 'AbortError') {
           console.error('[search] stream error:', err);
           emit({ type: 'error', error: 'Failed to perform search' });
         }
@@ -172,10 +182,12 @@ async function searchExhaustive(
   todayDate: string,
   today: Date,
   emit: Emit,
+  signal: AbortSignal,
 ) {
   emit({ type: 'progress', message: 'Loading all logs...', searchMode: 'exhaustive' });
   console.log(`[search] exhaustive: loading all logs`);
   const { logs, daysSearched } = await loadAllLogs(today);
+  throwIfAborted(signal);
 
   if (logs.length === 0) {
     console.log(`[search] exhaustive: no logs found`);
@@ -194,11 +206,13 @@ async function searchExhaustive(
   emit({ type: 'progress', message: `Loaded ${logs.length} log entries, fetching GitHub context...`, daysSearched, searchMode: 'exhaustive' });
   const allUrls = await collectUrlsFromLogs(logs);
   const githubContext = await fetchGitHubContext(Array.from(allUrls));
+  throwIfAborted(signal);
   console.log(`[search] exhaustive: ${allUrls.size} GitHub URLs, ${githubContext.length} context items`);
   const systemPrompt = buildSystemPrompt(todayDate, 'exhaustive');
 
   if (totalChars <= MAX_SINGLE_SHOT_CHARS) {
     emit({ type: 'progress', message: 'Searching with AI...', daysSearched, searchMode: 'exhaustive' });
+    throwIfAborted(signal);
     console.log(`[search] exhaustive: single-shot (${totalChars} <= ${MAX_SINGLE_SHOT_CHARS})`);
     const searchWindow = `Searching ALL available logs (${daysSearched} days)`;
     const userPrompt = buildUserPrompt(query, logs, githubContext, searchWindow);
@@ -221,6 +235,7 @@ async function searchExhaustive(
   emit({ type: 'progress', message: `Searching in ${totalBatches} batches...`, daysSearched, searchMode: 'exhaustive' });
   const partialFindings: string[] = [];
   for (let i = 0; i < logs.length; i += EXHAUSTIVE_CHUNK_DAYS) {
+    throwIfAborted(signal);
     const batchNum = Math.floor(i / EXHAUSTIVE_CHUNK_DAYS) + 1;
     const chunk = logs.slice(i, i + EXHAUSTIVE_CHUNK_DAYS);
     const chunkFirst = chunk[0].match(/^## (\d{4}-\d{2}-\d{2})/)?.[1] ?? '';
@@ -260,6 +275,7 @@ async function searchExhaustive(
 
   // Consolidation call to merge partial findings
   emit({ type: 'progress', message: 'Merging results from all batches...', daysSearched, searchMode: 'exhaustive' });
+  throwIfAborted(signal);
   console.log(`[search] exhaustive: merging ${partialFindings.length} partial findings`);
   const mergePrompt = `You were asked: "${query}"
 
@@ -289,10 +305,12 @@ async function searchDateBounded(
   startDate: string,
   endDate: string,
   emit: Emit,
+  signal: AbortSignal,
 ) {
   emit({ type: 'progress', message: `Loading logs from ${startDate} to ${endDate}...`, searchMode: 'date_bounded' });
   console.log(`[search] date_bounded: ${startDate} to ${endDate}`);
   const logs = await loadLogsForRange(startDate, endDate);
+  throwIfAborted(signal);
   const start = new Date(startDate + 'T00:00:00');
   const end = new Date(endDate + 'T00:00:00');
   const daysSearched = Math.ceil(
@@ -316,6 +334,7 @@ async function searchDateBounded(
   emit({ type: 'progress', message: `Loaded ${logs.length} log entries, searching with AI...`, daysSearched, searchMode: 'date_bounded' });
   const allUrls = await collectUrlsFromLogs(logs);
   const githubContext = await fetchGitHubContext(Array.from(allUrls));
+  throwIfAborted(signal);
   console.log(`[search] date_bounded: ${allUrls.size} GitHub URLs, ${githubContext.length} context items`);
   const searchWindow = `Searching from ${startDate} to ${endDate} (${daysSearched} days)`;
   const systemPrompt = buildSystemPrompt(todayDate, 'date_bounded');
@@ -344,6 +363,7 @@ async function searchRecentFirst(
   today: Date,
   offsetDays: number,
   emit: Emit,
+  signal: AbortSignal,
 ) {
   emit({ type: 'progress', message: 'Searching recent logs...', daysSearched: offsetDays, searchMode: 'recent_first' });
   console.log(`[search] recent_first: starting from offset ${offsetDays} days`);
@@ -355,6 +375,7 @@ async function searchRecentFirst(
   const githubContextCache = new Map<string, GitHubContextItem>();
 
   for (let iter = 0; iter < MAX_ITERATIONS_PER_REQUEST; iter++) {
+    throwIfAborted(signal);
     const windowEnd = new Date(today);
     windowEnd.setDate(windowEnd.getDate() - daysSearched);
     const windowStart = new Date(windowEnd);
@@ -404,6 +425,7 @@ async function searchRecentFirst(
     }
 
     emit({ type: 'progress', message: `Searching with AI (${daysSearched} days so far)...`, daysSearched, searchMode: 'recent_first' });
+    throwIfAborted(signal);
 
     const allGithubContext = Array.from(githubContextCache.values());
     const totalChars = allLogs.reduce((sum, l) => sum + l.length, 0);
@@ -487,15 +509,16 @@ export async function POST(req: Request) {
 
   const today = new Date(todayDate + 'T12:00:00');
 
-  return createSearchStream(async (emit) => {
+  return createSearchStream(async (emit, signal) => {
     emit({ type: 'progress', message: 'Classifying query...' });
     const classifyStart = Date.now();
     const classification = await classifySearchQuery(query, todayDate);
+    throwIfAborted(signal);
     console.log(`[search] classified as ${classification.mode} in ${Date.now() - classifyStart}ms`, classification.startDate ? `range=${classification.startDate}..${classification.endDate}` : '');
 
     switch (classification.mode) {
       case 'exhaustive':
-        await searchExhaustive(query, model, todayDate, today, emit);
+        await searchExhaustive(query, model, todayDate, today, emit, signal);
         break;
 
       case 'date_bounded': {
@@ -507,21 +530,21 @@ export async function POST(req: Request) {
         const parsedEnd = new Date(endDate + 'T00:00:00');
         if (isNaN(parsedStart.getTime()) || isNaN(parsedEnd.getTime())) {
           console.log(`[search] invalid dates from classifier, falling back to recent_first`);
-          await searchRecentFirst(query, model, todayDate, today, offsetDays, emit);
+          await searchRecentFirst(query, model, todayDate, today, offsetDays, emit, signal);
           break;
         }
         const resolvedStart = parsedStart <= parsedEnd ? startDate : endDate;
         const resolvedEnd = parsedStart <= parsedEnd ? endDate : startDate;
-        await searchDateBounded(query, model, todayDate, resolvedStart, resolvedEnd, emit);
+        await searchDateBounded(query, model, todayDate, resolvedStart, resolvedEnd, emit, signal);
         break;
       }
 
       case 'recent_first':
       default:
-        await searchRecentFirst(query, model, todayDate, today, offsetDays, emit);
+        await searchRecentFirst(query, model, todayDate, today, offsetDays, emit, signal);
         break;
     }
 
     console.log(`[search] completed in ${Date.now() - t0}ms`);
-  });
+  }, req.signal);
 }
