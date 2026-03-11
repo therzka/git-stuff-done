@@ -27,7 +27,7 @@
 - **🤖 Assign to Copilot** — From the My Issues panel, hover over any issue without a linked PR and click the Copilot icon to assign it to the GitHub Copilot coding agent. A modal lets you select the **target repository** (where the PR will be created — useful when issues live in a tracker repo but code lives elsewhere), the **AI model** for Copilot to use, and provide **additional instructions**. Issues already assigned to Copilot show a "Copilot" badge. Uses the GitHub REST API with the `agent_assignment` parameter for cross-repo PR creation.
 - **🔔 Notifications** — Filtered GitHub notifications: reviews requested, mentions, assignments, and activity on your issues/PRs. Click the insert button to paste a link at the cursor. Dismiss individual notifications with the X button (reappear on reload).
 - **🚀 Auto-commit & Push** — Hourly auto-commit of your logs and TODOs to a git repo, with push to remote.
-- **⚙️ Settings** — Ignore noisy repos in notifications.
+- **⚙️ Settings** — Set a preferred AI model (persisted in `data/config.json` and used as the default in all model pickers) and ignore noisy repos in notifications.
 - **▤ Layout modes** — Toggle between grid (2-column) and column (single-column) layouts. Hide individual panels and restore them from the ☰ menu. Preferences are saved in localStorage.
 - **🌗 Dark Mode** — First-class support for both light and dark themes.
 

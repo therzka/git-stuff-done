@@ -18,6 +18,10 @@ export async function PUT(request: NextRequest) {
       .slice(0, 100);
   }
 
+  if (typeof body.preferredModel === "string") {
+    config.preferredModel = body.preferredModel.trim().slice(0, 200) || undefined;
+  }
+
   await writeConfig(config);
   return NextResponse.json(config);
 }
