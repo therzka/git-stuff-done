@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useModels } from "@/hooks/useModels";
 import {
   X,
@@ -34,6 +34,7 @@ interface SummaryModalProps {
   isOpen: boolean;
   onClose: () => void;
   defaultDate: string;
+  preferredModel?: string;
 }
 
 export default function SummaryModal({
@@ -41,12 +42,13 @@ export default function SummaryModal({
   onClose,
   defaultDate,
   isDemo = false,
+  preferredModel = '',
 }: SummaryModalProps & { isDemo?: boolean }) {
   const { models, loading: modelsLoading } = useModels(isOpen);
   const [startDate, setStartDate] = useState(defaultDate);
   const [endDate, setEndDate] = useState(defaultDate);
   const [customPrompt, setCustomPrompt] = useState(DEFAULT_PROMPTS[0].value);
-  const [selectedModel, setSelectedModel] = useState("");
+  const [selectedModel, setSelectedModel] = useState(preferredModel);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [result, setResult] = useState<string | null>(null);
@@ -66,9 +68,18 @@ export default function SummaryModal({
 
   useEffect(() => {
     if (!modelsLoading && models.length > 0 && !selectedModel) {
-      setSelectedModel(models[0].id);
+      const preferred = preferredModel && models.find((m) => m.id === preferredModel);
+      setSelectedModel(preferred ? preferredModel : models[0].id);
     }
-  }, [models, modelsLoading, selectedModel]);
+  }, [models, modelsLoading, selectedModel, preferredModel]);
+
+  const sortedModels = useMemo(
+    () => [
+      ...models.filter((m) => m.id === preferredModel),
+      ...models.filter((m) => m.id !== preferredModel),
+    ],
+    [models, preferredModel],
+  );
 
   useEffect(() => {
     if (!isOpen) return;
@@ -311,11 +322,15 @@ export default function SummaryModal({
                   className="w-full appearance-none rounded-xl border border-input bg-muted/50 px-3 py-2 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-ring/20 transition-all cursor-pointer disabled:opacity-50"
                 >
                   {modelsLoading ? (
-                    <option value="">Loading models…</option>
+                    preferredModel ? (
+                      <option value={preferredModel}>{preferredModel}</option>
+                    ) : (
+                      <option value="">Loading models…</option>
+                    )
                   ) : (
-                    models.map((m) => (
+                    sortedModels.map((m) => (
                       <option key={m.id} value={m.id}>
-                        {m.name}
+                        {m.name}{m.id === preferredModel ? ' ★' : ''}
                       </option>
                     ))
                   )}

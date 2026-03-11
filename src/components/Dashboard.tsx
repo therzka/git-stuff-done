@@ -16,6 +16,7 @@ import SearchModal from './SearchModal';
 import SummariesModal from './SummariesModal';
 import CalendarPicker from './CalendarPicker';
 import { GITHUB_ORG } from '@/lib/constants';
+import { useModels } from '@/hooks/useModels';
 
 type PanelId = 'log' | 'todos' | 'prs' | 'issues' | 'notifs';
 type LayoutMode = 'grid' | 'column';
@@ -134,12 +135,16 @@ export default function Dashboard() {
   const [ignoredRepos, setIgnoredRepos] = useState<string[]>([]);
   const [repoInput, setRepoInput] = useState('');
   const [notifsKey, setNotifsKey] = useState(0);
+  const [preferredModel, setPreferredModel] = useState('');
+
+  const { models: settingsModels, loading: settingsModelsLoading } = useModels(showSettings);
 
   const fetchConfig = useCallback(async () => {
     try {
       const res = await fetch('/api/config');
       const data = await res.json();
       setIgnoredRepos(data.ignoredRepos ?? []);
+      setPreferredModel(data.preferredModel ?? '');
     } catch { /* ignore */ }
   }, []);
 
@@ -153,6 +158,19 @@ export default function Dashboard() {
       body: JSON.stringify({ ignoredRepos: repos }),
     });
     setNotifsKey((k) => k + 1);
+  }
+
+  async function savePreferredModel(model: string) {
+    setPreferredModel(model);
+    if (!isDemo) {
+      try {
+        await fetch('/api/config', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ preferredModel: model }),
+        });
+      } catch { /* ignore */ }
+    }
   }
 
   async function addIgnoredRepo() {
@@ -331,6 +349,7 @@ export default function Dashboard() {
         onClose={() => setShowSummary(false)}
         defaultDate={date}
         isDemo={isDemo}
+        preferredModel={preferredModel}
       />
 
       <SearchModal
@@ -347,33 +366,71 @@ export default function Dashboard() {
 
       {/* Settings panel */}
       {showSettings && (
-        <div className="border-b border-border bg-card px-6 py-4">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-semibold text-foreground">Ignored Repos <span className="text-muted-foreground font-normal">(in {GITHUB_ORG} org)</span></h3>
+        <div className="border-b border-border bg-card px-6 py-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-foreground">Settings</h3>
             <button onClick={() => setShowSettings(false)} className="text-xs text-muted-foreground hover:text-foreground">Close</button>
           </div>
-          <form onSubmit={(e) => { e.preventDefault(); addIgnoredRepo(); }} className="flex gap-2 mb-2">
-            <input
-              type="text"
-              value={repoInput}
-              onChange={(e) => setRepoInput(e.target.value)}
-              placeholder="repo-name"
-              className="flex-1 rounded-xl border border-input bg-muted/50 px-3 py-1.5 text-sm text-foreground placeholder-muted-foreground outline-none focus:border-primary focus:ring-2 focus:ring-ring/20"
-            />
-            <button type="submit" className="rounded-xl bg-accent px-3 py-1.5 text-sm font-medium text-accent-foreground transition hover:opacity-80">Add</button>
-          </form>
-          {ignoredRepos.length === 0 ? (
-            <p className="text-xs text-muted-foreground">No repos ignored.</p>
-          ) : (
-            <div className="flex flex-wrap gap-2">
-              {ignoredRepos.map((repo) => (
-                <span key={repo} className="inline-flex items-center gap-1 rounded-full bg-secondary border border-border px-3 py-1 text-xs text-secondary-foreground font-medium">
-                  {repo}
-                  <button onClick={() => removeIgnoredRepo(repo)} className="text-muted-foreground hover:text-foreground"><X className="h-3 w-3" aria-hidden="true" /></button>
-                </span>
-              ))}
+
+          {/* Preferred AI Model */}
+          <div>
+            <label htmlFor="settings-preferred-model" className="block text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wider">
+              Preferred AI Model
+            </label>
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1 max-w-xs">
+                <select
+                  id="settings-preferred-model"
+                  value={preferredModel}
+                  onChange={(e) => savePreferredModel(e.target.value)}
+                  disabled={settingsModelsLoading}
+                  className="w-full appearance-none rounded-xl border border-input bg-muted/50 pl-3 pr-8 py-1.5 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-ring/20 transition-all cursor-pointer disabled:opacity-50"
+                >
+                  <option value="">Default (first available)</option>
+                  {settingsModelsLoading ? (
+                    <option value="" disabled>Loading models…</option>
+                  ) : (
+                    settingsModels.map((m) => (
+                      <option key={m.id} value={m.id}>{m.name}</option>
+                    ))
+                  )}
+                </select>
+                <svg className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                  <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+              </div>
+              {isDemo && (
+                <span className="text-xs text-muted-foreground">(not saved in demo mode)</span>
+              )}
             </div>
-          )}
+          </div>
+
+          {/* Ignored Repos */}
+          <div>
+            <p className="text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wider">Ignored Repos <span className="normal-case font-normal">(in {GITHUB_ORG} org)</span></p>
+            <form onSubmit={(e) => { e.preventDefault(); addIgnoredRepo(); }} className="flex gap-2 mb-2">
+              <input
+                type="text"
+                value={repoInput}
+                onChange={(e) => setRepoInput(e.target.value)}
+                placeholder="repo-name"
+                className="flex-1 rounded-xl border border-input bg-muted/50 px-3 py-1.5 text-sm text-foreground placeholder-muted-foreground outline-none focus:border-primary focus:ring-2 focus:ring-ring/20"
+              />
+              <button type="submit" className="rounded-xl bg-accent px-3 py-1.5 text-sm font-medium text-accent-foreground transition hover:opacity-80">Add</button>
+            </form>
+            {ignoredRepos.length === 0 ? (
+              <p className="text-xs text-muted-foreground">No repos ignored.</p>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {ignoredRepos.map((repo) => (
+                  <span key={repo} className="inline-flex items-center gap-1 rounded-full bg-secondary border border-border px-3 py-1 text-xs text-secondary-foreground font-medium">
+                    {repo}
+                    <button onClick={() => removeIgnoredRepo(repo)} className="text-muted-foreground hover:text-foreground"><X className="h-3 w-3" aria-hidden="true" /></button>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
