@@ -69,7 +69,9 @@ function createSearchStream(
       try {
         await searchFn(emit, signal);
       } catch (err) {
-        if (!closed && (err as Error).name !== 'AbortError') {
+        if ((err as Error).name === 'AbortError') {
+          console.log('[search] stopped by user');
+        } else if (!closed) {
           console.error('[search] stream error:', err);
           emit({ type: 'error', error: 'Failed to perform search' });
         }
