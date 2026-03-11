@@ -1,6 +1,11 @@
 import { TodoItem } from "@/lib/files";
 import { COPILOT_AGENT_LOGIN } from "@/lib/constants";
 
+export const DEMO_CONFIG = {
+  ignoredRepos: ["noisy-bot-repo", "archived-2024"],
+  fontSize: "1",
+};
+
 export const DEMO_LOG_CONTENT = `
 - **Project: Analytics Dashboard**
   - [x] Refactor data fetching hook to use SWR

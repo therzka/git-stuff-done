@@ -16,6 +16,7 @@ import SearchModal from './SearchModal';
 import SummariesModal from './SummariesModal';
 import CalendarPicker from './CalendarPicker';
 import { GITHUB_ORG } from '@/lib/constants';
+import { DEMO_CONFIG } from '@/lib/demo';
 
 type PanelId = 'log' | 'todos' | 'prs' | 'issues' | 'notifs';
 type LayoutMode = 'grid' | 'column';
@@ -150,6 +151,10 @@ export default function Dashboard() {
   const [fontScale, setFontScale] = useState(loadFontScale);
 
   const fetchConfig = useCallback(async () => {
+    if (isDemo) {
+      setIgnoredRepos(DEMO_CONFIG.ignoredRepos);
+      return;
+    }
     try {
       const res = await fetch('/api/config');
       const data = await res.json();
@@ -159,17 +164,19 @@ export default function Dashboard() {
       document.documentElement.style.setProperty('--text-scale', serverScale);
       localStorage.setItem('gsd-font-size', serverScale);
     } catch { /* ignore */ }
-  }, []);
+  }, [isDemo]);
 
   useEffect(() => { fetchConfig(); }, [fetchConfig]);
 
   async function saveIgnoredRepos(repos: string[]) {
     setIgnoredRepos(repos);
-    await fetch('/api/config', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ignoredRepos: repos }),
-    });
+    if (!isDemo) {
+      await fetch('/api/config', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ignoredRepos: repos }),
+      });
+    }
     setNotifsKey((k) => k + 1);
   }
 
@@ -413,11 +420,13 @@ export default function Dashboard() {
                     setFontScale(scale);
                     document.documentElement.style.setProperty('--text-scale', scale);
                     localStorage.setItem('gsd-font-size', scale);
-                    fetch('/api/config', {
-                      method: 'PUT',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ fontSize: scale }),
-                    });
+                    if (!isDemo) {
+                      fetch('/api/config', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ fontSize: scale }),
+                      });
+                    }
                   }}
                   className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
                     fontScale === scale
