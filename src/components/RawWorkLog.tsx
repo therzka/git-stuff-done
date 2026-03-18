@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { FileText, Link2 } from 'lucide-react';
+import { FileText, Link2, X } from 'lucide-react';
 import TiptapEditor, { type TiptapEditorHandle } from './TiptapEditor';
 import ImageLightbox from './ImageLightbox';
 import { DEMO_LOG_CONTENT, DEMO_RICH_LOG_CONTENT } from '@/lib/demo';
@@ -137,6 +137,14 @@ export default function RawWorkLog({ date, isDemo = false, onRegisterInsert }: R
     return data.url;
   }, [currentDate, isDemo]);
 
+  const handleDeleteAttachment = useCallback(async (url: string) => {
+    if (isDemo) return;
+    try {
+      const res = await fetch(url, { method: 'DELETE' });
+      if (res.ok) setAttachments(prev => prev.filter(u => u !== url));
+    } catch { /* ignore */ }
+  }, [isDemo]);
+
   const insertAtCursor = useCallback((text: string) => {
     editorRef.current?.insertAtCursor(text);
   }, []);
@@ -183,14 +191,22 @@ export default function RawWorkLog({ date, isDemo = false, onRegisterInsert }: R
       {attachments.length > 0 && (
         <div className="shrink-0 border-t border-border px-3 py-2 flex items-center gap-2 flex-wrap">
           {attachments.map(url => (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              key={url}
-              src={url}
-              alt=""
-              className="h-20 w-auto rounded-md border border-border cursor-pointer object-contain transition-opacity hover:opacity-75"
-              onClick={() => setLightboxSrc(url)}
-            />
+            <div key={url} className="relative group">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={url}
+                alt=""
+                className="h-20 w-auto rounded-md border border-border cursor-pointer object-contain transition-opacity hover:opacity-75"
+                onClick={() => setLightboxSrc(url)}
+              />
+              <button
+                onClick={() => handleDeleteAttachment(url)}
+                className="absolute -top-1.5 -right-1.5 hidden group-hover:flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-destructive-foreground shadow-sm transition-colors hover:opacity-90"
+                aria-label="Delete attachment"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </div>
           ))}
         </div>
       )}
