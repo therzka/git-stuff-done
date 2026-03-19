@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom';
 import { useTheme } from 'next-themes';
 import { useSearchParams } from 'next/navigation';
 import { Panel, Group as PanelGroup, Separator as PanelResizeHandle } from 'react-resizable-panels';
-import { Upload, Moon, Sun, BarChart2, Search, Settings, LayoutGrid, AlignJustify, Menu, X, ChevronLeft, ChevronRight, FileText, Sparkles } from 'lucide-react';
+import { Upload, Moon, Sun, BarChart2, Search, Settings, LayoutGrid, AlignJustify, Menu, X, ChevronLeft, ChevronRight, FileText, Check, Minus, Sparkles } from 'lucide-react';
 import RawWorkLog from './RawWorkLog';
 import TodoList from './TodoList';
 import MyPRs from './MyPRs';
@@ -15,6 +15,7 @@ import AiModal from './AiModal';
 import SummariesModal from './SummariesModal';
 import CalendarPicker from './CalendarPicker';
 import { GITHUB_ORG } from '@/lib/constants';
+import { DEMO_CONFIG } from '@/lib/demo';
 
 type PanelId = 'log' | 'todos' | 'prs' | 'issues' | 'notifs';
 type LayoutMode = 'grid' | 'column';
@@ -27,6 +28,20 @@ const PANEL_LABELS: Record<PanelId, string> = {
   notifs: 'Notifications',
 };
 const ALL_PANELS: PanelId[] = ['log', 'todos', 'prs', 'issues', 'notifs'];
+
+type CommitState = 'idle' | 'committing' | 'success' | 'no-changes' | 'error';
+
+const FONT_SIZE_OPTIONS = [
+  { label: 'Compact', scale: '0.875' },
+  { label: 'Default', scale: '1' },
+  { label: 'Comfortable', scale: '1.125' },
+  { label: 'Large', scale: '1.25' },
+];
+
+function loadFontScale(): string {
+  if (typeof window === 'undefined') return '1';
+  return localStorage.getItem('gsd-font-size') || '1';
+}
 
 function loadLayout(): LayoutMode {
   if (typeof window === 'undefined') return 'grid';
@@ -51,8 +66,7 @@ export default function Dashboard() {
 
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
-  const [committing, setCommitting] = useState(false);
-  const [commitMsg, setCommitMsg] = useState<string | null>(null);
+  const [commitState, setCommitState] = useState<CommitState>('idle');
   const [date, setDate] = useState(todayISO);
   const [aiModalTab, setAiModalTab] = useState<'search' | 'summarize' | null>(null);
   const [aiMenuOpen, setAiMenuOpen] = useState(false);
@@ -61,6 +75,7 @@ export default function Dashboard() {
   const [aiMenuPos, setAiMenuPos] = useState({ top: 0, left: 0 });
   const [showSummaries, setShowSummaries] = useState(false);
   const insertAtCursorRef = useRef<((text: string) => void) | null>(null);
+  const commitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Layout & panel visibility
   const [layout, setLayout] = useState<LayoutMode>(loadLayout);
@@ -148,24 +163,35 @@ export default function Dashboard() {
   const [ignoredRepos, setIgnoredRepos] = useState<string[]>([]);
   const [repoInput, setRepoInput] = useState('');
   const [notifsKey, setNotifsKey] = useState(0);
+  const [fontScale, setFontScale] = useState(loadFontScale);
 
   const fetchConfig = useCallback(async () => {
+    if (isDemo) {
+      setIgnoredRepos(DEMO_CONFIG.ignoredRepos);
+      return;
+    }
     try {
       const res = await fetch('/api/config');
       const data = await res.json();
       setIgnoredRepos(data.ignoredRepos ?? []);
+      const serverScale = data.fontSize ?? '1';
+      setFontScale(serverScale);
+      document.documentElement.style.setProperty('--text-scale', serverScale);
+      localStorage.setItem('gsd-font-size', serverScale);
     } catch { /* ignore */ }
-  }, []);
+  }, [isDemo]);
 
   useEffect(() => { fetchConfig(); }, [fetchConfig]);
 
   async function saveIgnoredRepos(repos: string[]) {
     setIgnoredRepos(repos);
-    await fetch('/api/config', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ignoredRepos: repos }),
-    });
+    if (!isDemo) {
+      await fetch('/api/config', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ignoredRepos: repos }),
+      });
+    }
     setNotifsKey((k) => k + 1);
   }
 
@@ -181,22 +207,20 @@ export default function Dashboard() {
   }
 
   async function handleCommit() {
-    setCommitting(true);
+    if (commitTimerRef.current) clearTimeout(commitTimerRef.current);
+    setCommitState('committing');
     try {
       const res = await fetch('/api/commit', { method: 'POST' });
-      const data = await res.json();
-      if (data.committed) {
-        setCommitMsg('✓ Committed');
+      if (!res.ok) {
+        setCommitState('error');
       } else {
-        setCommitMsg(data.message || 'Nothing to commit');
+        const data = await res.json();
+        setCommitState(data.committed ? 'success' : 'no-changes');
       }
-      setTimeout(() => setCommitMsg(null), 3000);
     } catch {
-      setCommitMsg('Commit failed');
-      setTimeout(() => setCommitMsg(null), 3000);
-    } finally {
-      setCommitting(false);
+      setCommitState('error');
     }
+    commitTimerRef.current = setTimeout(() => setCommitState('idle'), 3000);
   }
 
   return (
@@ -240,16 +264,33 @@ export default function Dashboard() {
           </button>
         </div>
         <div className="flex items-center gap-1 sm:gap-3 justify-end">
-          {commitMsg && (
-            <span className="text-xs text-primary font-medium">{commitMsg}</span>
-          )}
           <button
             onClick={handleCommit}
-            disabled={committing || isDemo}
+            disabled={commitState !== 'idle' || isDemo}
             title={isDemo ? 'Disabled in demo mode' : 'Push to GitHub'}
-            className="rounded-xl bg-primary px-2.5 py-1.5 text-xs font-semibold text-primary-foreground shadow-sm transition hover:opacity-90 disabled:opacity-50 sm:px-4 sm:text-sm"
+            className={`inline-flex items-center justify-center rounded-xl min-w-[2.75rem] sm:min-w-[8.5rem] px-2.5 py-1.5 text-xs font-semibold shadow-sm transition-colors duration-300 sm:px-4 sm:text-sm ${
+              commitState === 'success'
+                ? 'bg-success text-success-foreground disabled:opacity-100'
+                : commitState === 'error'
+                  ? 'bg-destructive text-destructive-foreground disabled:opacity-100'
+                  : 'bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50'
+            }`}
           >
-            {committing ? '…' : <><Upload className="h-3.5 w-3.5 sm:hidden" aria-hidden="true" /><span className="hidden sm:inline">Commit &amp; Push</span></>}
+            {commitState === 'committing' && (
+              <><Upload className="h-3.5 w-3.5 animate-pulse sm:hidden" aria-hidden="true" /><span className="hidden sm:inline">Committing…</span></>
+            )}
+            {commitState === 'idle' && (
+              <><Upload className="h-3.5 w-3.5 sm:hidden" aria-hidden="true" /><span className="hidden sm:inline">Commit &amp; Push</span></>
+            )}
+            {commitState === 'success' && (
+              <><Check className="h-3.5 w-3.5 sm:hidden" aria-hidden="true" /><span className="hidden sm:inline">✓ Committed</span></>
+            )}
+            {commitState === 'no-changes' && (
+              <><Minus className="h-3.5 w-3.5 sm:hidden" aria-hidden="true" /><span className="hidden sm:inline">No changes</span></>
+            )}
+            {commitState === 'error' && (
+              <><X className="h-3.5 w-3.5 sm:hidden" aria-hidden="true" /><span className="hidden sm:inline">Failed!</span></>
+            )}
           </button>
           <button
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
@@ -409,6 +450,36 @@ export default function Dashboard() {
               ))}
             </div>
           )}
+          {/* Font Size */}
+          <div className="mt-4 pt-4 border-t border-border">
+            <h3 className="text-sm font-semibold text-foreground mb-2">Font Size</h3>
+            <div className="flex gap-1.5">
+              {FONT_SIZE_OPTIONS.map(({ label, scale }) => (
+                <button
+                  key={scale}
+                  onClick={() => {
+                    setFontScale(scale);
+                    document.documentElement.style.setProperty('--text-scale', scale);
+                    localStorage.setItem('gsd-font-size', scale);
+                    if (!isDemo) {
+                      fetch('/api/config', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ fontSize: scale }),
+                      });
+                    }
+                  }}
+                  className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
+                    fontScale === scale
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { GitMerge, CheckCircle } from "lucide-react";
 import { DEMO_PRS } from "@/lib/demo";
 import { useVisibilityPolling } from "@/hooks/useVisibilityPolling";
+import { isCopilotLogin } from "@/lib/constants";
 
 type PullRequest = {
   id: number;
@@ -160,7 +161,7 @@ export default function MyPRs({
                         className="min-w-0 flex-1 text-sm font-medium text-foreground hover:text-primary transition-colors block truncate"
                       >
                         {pr.isAssignee &&
-                          pr.authorLogin === "Copilot" && (
+                          isCopilotLogin(pr.authorLogin) && (
                             <svg
                               className="mr-1 inline-block align-text-bottom"
                               width="14"

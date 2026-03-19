@@ -1,4 +1,10 @@
 import { TodoItem } from "@/lib/files";
+import { COPILOT_AGENT_LOGIN } from "@/lib/constants";
+
+export const DEMO_CONFIG = {
+  ignoredRepos: ["noisy-bot-repo", "archived-2024"],
+  fontSize: "1",
+};
 
 export const DEMO_LOG_CONTENT = `
 - **Project: Analytics Dashboard**
@@ -176,6 +182,7 @@ export const DEMO_ISSUES = [
     labels: ["bug", "P1"],
     commentCount: 4,
     author: "designer42",
+    assignees: ["you"],
     linkedPRs: [
       { number: 421, title: "fix: crash on mobile Safari chart render", url: "#", state: "OPEN", isDraft: false },
     ],
@@ -192,6 +199,7 @@ export const DEMO_ISSUES = [
     labels: ["enhancement"],
     commentCount: 1,
     author: "pm-lead",
+    assignees: ["you", COPILOT_AGENT_LOGIN],
     linkedPRs: [
       { number: 90, title: "feat: dark mode email templates (WIP)", url: "#", state: "OPEN", isDraft: true },
     ],
@@ -208,6 +216,7 @@ export const DEMO_ISSUES = [
     labels: ["documentation"],
     commentCount: 0,
     author: "tech-writer",
+    assignees: ["you"],
     linkedPRs: [],
   },
 ];

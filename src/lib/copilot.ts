@@ -25,6 +25,7 @@ function applyLinkification(
 
 /**
  * Call the Copilot SDK with a system prompt and user prompt, return the response.
+ * Combines both prompts into a single request to avoid a wasted round-trip.
  */
 export async function callCopilot(
   systemPrompt: string, 
@@ -32,12 +33,11 @@ export async function callCopilot(
   model: string = MODEL,
   timeout?: number,
 ): Promise<string> {
+  const combinedPrompt = `${systemPrompt}\n\n---\n\n${userPrompt}`;
   const client = new CopilotClient();
   try {
     const session = await client.createSession({ model });
-    // Send system context first, then user message
-    await session.sendAndWait({ prompt: systemPrompt }, timeout);
-    const response = await session.sendAndWait({ prompt: userPrompt }, timeout);
+    const response = await session.sendAndWait({ prompt: combinedPrompt }, timeout);
     return response?.data?.content ?? '';
   } finally {
     await client.stop();

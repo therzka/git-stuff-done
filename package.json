@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@github/copilot-sdk": "^0.1.25",
+    "@headlessui/react": "^2.2.9",
     "@octokit/rest": "^22.0.1",
     "@tiptap/extension-link": "^3.20.0",
     "@tiptap/extension-placeholder": "^3.20.0",
