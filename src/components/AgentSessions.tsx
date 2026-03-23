@@ -131,58 +131,76 @@ export default function AgentSessions({
             <ul className="divide-y divide-border">
               {items.map((session) => {
                 const repoShort = session.repository?.split('/')[1] ?? session.repository;
+                const canInsert = onInsert && !!session.pullRequestUrl;
 
                 return (
                   <li
                     key={session.id}
                     className="group px-4 py-3 transition-colors hover:bg-muted/50"
                   >
-                    <div className="flex items-start gap-2">
-                      {onInsert && (
-                        <button
-                          onClick={() => onInsert(insertText(session))}
-                          title="Insert link at cursor"
-                          aria-label={`Insert link for "${session.name}"`}
-                          className="mt-0.5 shrink-0 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-all rounded p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                        >
-                          <svg className="h-3.5 w-3.5" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-                            <path d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.61Zm.176 4.823L9.75 4.81l-6.286 6.287a.253.253 0 0 0-.064.108l-.558 1.953 1.953-.558a.253.253 0 0 0 .108-.064Zm1.238-3.763a.25.25 0 0 0-.354 0L10.811 3.75l1.439 1.44 1.263-1.263a.25.25 0 0 0 0-.354Z" />
-                          </svg>
-                        </button>
-                      )}
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-foreground truncate leading-snug">
-                          {session.name}
-                        </p>
-                        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
-                          {repoShort && (
-                            <span className="flex items-center gap-1">
-                              <GitPullRequest className="h-3 w-3 shrink-0" aria-hidden="true" />
-                              <span className="truncate max-w-[160px]">{repoShort}</span>
-                            </span>
-                          )}
-                          <span>{timeAgo(session.createdAt)}</span>
-                          {session.pullRequestNumber && (
-                            <a
-                              href={session.pullRequestUrl ?? '#'}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              onClick={(e) => e.stopPropagation()}
-                              className="rounded-full bg-violet-50 px-1.5 py-0.5 text-xs font-medium text-violet-700 ring-1 ring-inset ring-violet-600/20 dark:bg-violet-500/10 dark:text-violet-400 dark:ring-violet-500/20 tabular-nums"
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        {session.pullRequestUrl ? (
+                          <a
+                            href={session.pullRequestUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm font-medium text-foreground truncate leading-snug hover:underline min-w-0"
+                          >
+                            {session.name}
+                          </a>
+                        ) : (
+                          <span className="text-sm font-medium text-foreground truncate leading-snug min-w-0">
+                            {session.name}
+                          </span>
+                        )}
+                        {canInsert && (
+                          <button
+                            onClick={() => onInsert(insertText(session))}
+                            title="Insert link at cursor"
+                            aria-label={`Insert link for "${session.name}"`}
+                            className="shrink-0 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-all rounded p-1 text-muted-foreground hover:text-foreground hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              viewBox="0 0 16 16"
+                              fill="currentColor"
+                              className="w-4 h-4"
+                              aria-hidden="true"
                             >
-                              PR #{session.pullRequestNumber}
-                            </a>
-                          )}
-                          {session.state !== 'completed' && (
-                            <span className={`rounded-full px-1.5 py-0.5 text-xs font-medium ring-1 ring-inset ${
-                              session.state === 'in_progress'
-                                ? 'bg-blue-50 text-blue-700 ring-blue-600/20 dark:bg-blue-500/10 dark:text-blue-400 dark:ring-blue-500/20'
-                                : 'bg-amber-50 text-amber-700 ring-amber-600/20 dark:bg-amber-500/10 dark:text-amber-400 dark:ring-amber-500/20'
-                            }`}>
-                              {session.state === 'in_progress' ? 'running' : 'timed out'}
-                            </span>
-                          )}
-                        </div>
+                              <path d="M2 4.5A1.5 1.5 0 0 1 3.5 3h9A1.5 1.5 0 0 1 14 4.5v5a1.5 1.5 0 0 1-1.5 1.5H9.56l.97.97a.75.75 0 1 1-1.06 1.06l-2.25-2.25a.75.75 0 0 1 0-1.06l2.25-2.25a.75.75 0 0 1 1.06 1.06l-.97.97h2.94a.25.25 0 0 0 .25-.25v-5a.25.25 0 0 0-.25-.25h-9a.25.25 0 0 0-.25.25v2a.75.75 0 0 1-1.5 0v-2z" />
+                            </svg>
+                          </button>
+                        )}
+                      </div>
+                      <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
+                        {repoShort && (
+                          <span className="flex items-center gap-1">
+                            <GitPullRequest className="h-3 w-3 shrink-0" aria-hidden="true" />
+                            <span className="truncate max-w-[160px]">{repoShort}</span>
+                          </span>
+                        )}
+                        <span>{timeAgo(session.createdAt)}</span>
+                        {session.pullRequestNumber && (
+                          <a
+                            href={session.pullRequestUrl ?? '#'}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="rounded-full bg-violet-50 px-1.5 py-0.5 text-xs font-medium text-violet-700 ring-1 ring-inset ring-violet-600/20 dark:bg-violet-500/10 dark:text-violet-400 dark:ring-violet-500/20 tabular-nums"
+                          >
+                            PR #{session.pullRequestNumber}
+                          </a>
+                        )}
+                        {session.state !== 'completed' && (
+                          <span className={`rounded-full px-1.5 py-0.5 text-xs font-medium ring-1 ring-inset ${
+                            session.state === 'in_progress'
+                              ? 'bg-blue-50 text-blue-700 ring-blue-600/20 dark:bg-blue-500/10 dark:text-blue-400 dark:ring-blue-500/20'
+                              : 'bg-amber-50 text-amber-700 ring-amber-600/20 dark:bg-amber-500/10 dark:text-amber-400 dark:ring-amber-500/20'
+                          }`}>
+                            {session.state === 'in_progress' ? 'running' : 'timed out'}
+                          </span>
+                        )}
                       </div>
                     </div>
                   </li>
