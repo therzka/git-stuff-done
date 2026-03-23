@@ -95,13 +95,15 @@ export default function AgentSessions({
       <div className="flex items-center justify-between px-4 py-3 border-b border-border">
         <h2 className="text-base font-semibold text-primary flex items-center gap-2">
           <Bot className="h-4 w-4" aria-hidden="true" />
-          Agent Sessions
+          <a
+            href="https://github.com/copilot/agents"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:underline"
+          >
+            Agent Sessions
+          </a>
         </h2>
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground">
-            {sessions.length > 0 ? `${sessions.length} sessions` : ''}
-          </span>
-        </div>
       </div>
 
       {/* Body */}
@@ -187,9 +189,15 @@ export default function AgentSessions({
                             target="_blank"
                             rel="noopener noreferrer"
                             onClick={(e) => e.stopPropagation()}
-                            className="rounded-full bg-violet-50 px-1.5 py-0.5 text-xs font-medium text-violet-700 ring-1 ring-inset ring-violet-600/20 dark:bg-violet-500/10 dark:text-violet-400 dark:ring-violet-500/20 tabular-nums"
+                            className={`rounded-full px-1.5 py-0.5 text-xs font-medium ring-1 ring-inset tabular-nums ${
+                              session.pullRequestState === 'MERGED'
+                                ? 'bg-purple-50 text-purple-700 ring-purple-600/20 dark:bg-purple-500/10 dark:text-purple-400 dark:ring-purple-500/20'
+                                : session.pullRequestState === 'CLOSED'
+                                ? 'bg-zinc-50 text-zinc-600 ring-zinc-500/20 dark:bg-zinc-500/10 dark:text-zinc-400 dark:ring-zinc-500/20'
+                                : 'bg-violet-50 text-violet-700 ring-violet-600/20 dark:bg-violet-500/10 dark:text-violet-400 dark:ring-violet-500/20'
+                            }`}
                           >
-                            PR #{session.pullRequestNumber}
+                            {session.pullRequestState === 'MERGED' ? 'Merged' : session.pullRequestState === 'CLOSED' ? 'Closed' : 'Open'} #{session.pullRequestNumber}
                           </a>
                         )}
                         {session.state !== 'completed' && (

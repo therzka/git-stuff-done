@@ -10,6 +10,7 @@ export type AgentSession = {
   repository: string | null;
   state: string;
   pullRequestNumber: number | null;
+  pullRequestState: 'OPEN' | 'MERGED' | 'CLOSED' | null;
   pullRequestUrl: string | null;
   createdAt: string;
   updatedAt: string;
@@ -21,6 +22,7 @@ const GH_FIELDS = [
   'repository',
   'state',
   'pullRequestNumber',
+  'pullRequestState',
   'createdAt',
   'updatedAt',
 ].join(',');
@@ -49,7 +51,7 @@ async function fetchTasks(limit: number): Promise<RawTask[]> {
 
 export async function GET() {
   try {
-    const raw = await fetchTasks(100);
+    const raw = await fetchTasks(30);
     const sessions: AgentSession[] = raw.map((s) => ({
       ...s,
       pullRequestUrl:
