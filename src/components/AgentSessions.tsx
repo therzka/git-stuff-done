@@ -41,8 +41,8 @@ function groupByDate(sessions: AgentSession[]): [string, AgentSession[]][] {
 }
 
 function insertText(session: AgentSession): string {
-  if (session.pullRequestUrl && session.pullRequestTitle) {
-    return `[${session.pullRequestTitle}](${session.pullRequestUrl})`;
+  if (session.pullRequestUrl) {
+    return `[${session.name}](${session.pullRequestUrl})`;
   }
   const repoUrl = session.repository ? `https://github.com/${session.repository}` : '';
   return repoUrl ? `[${session.name}](${repoUrl})` : session.name;
@@ -151,13 +151,6 @@ export default function AgentSessions({
               {items.map((session) => {
                 const repoShort = session.repository?.split('/')[1] ?? session.repository;
 
-                const prStateClass =
-                  session.pullRequestState === 'MERGED'
-                    ? 'bg-purple-50 text-purple-700 ring-purple-600/20 dark:bg-purple-500/10 dark:text-purple-400 dark:ring-purple-500/20'
-                    : session.pullRequestState === 'CLOSED'
-                    ? 'bg-zinc-50 text-zinc-600 ring-zinc-500/20 dark:bg-zinc-500/10 dark:text-zinc-400 dark:ring-zinc-500/20'
-                    : 'bg-violet-50 text-violet-700 ring-violet-600/20 dark:bg-violet-500/10 dark:text-violet-400 dark:ring-violet-500/20';
-
                 return (
                   <li
                     key={session.id}
@@ -194,7 +187,7 @@ export default function AgentSessions({
                               target="_blank"
                               rel="noopener noreferrer"
                               onClick={(e) => e.stopPropagation()}
-                              className={`rounded-full px-1.5 py-0.5 text-xs font-medium ring-1 ring-inset tabular-nums ${prStateClass}`}
+                              className="rounded-full bg-violet-50 px-1.5 py-0.5 text-xs font-medium text-violet-700 ring-1 ring-inset ring-violet-600/20 dark:bg-violet-500/10 dark:text-violet-400 dark:ring-violet-500/20 tabular-nums"
                             >
                               PR #{session.pullRequestNumber}
                             </a>

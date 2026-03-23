@@ -10,8 +10,6 @@ export type AgentSession = {
   repository: string | null;
   state: string;
   pullRequestNumber: number | null;
-  pullRequestState: 'OPEN' | 'MERGED' | 'CLOSED' | null;
-  pullRequestTitle: string | null;
   pullRequestUrl: string | null;
   createdAt: string;
   updatedAt: string;
@@ -23,9 +21,6 @@ const GH_FIELDS = [
   'repository',
   'state',
   'pullRequestNumber',
-  'pullRequestState',
-  'pullRequestTitle',
-  'pullRequestUrl',
   'createdAt',
   'updatedAt',
 ].join(',');
@@ -37,7 +32,14 @@ export async function GET() {
       { env: { ...process.env, NO_COLOR: '1' } }
     );
 
-    const sessions: AgentSession[] = JSON.parse(stdout);
+    const raw: Array<Omit<AgentSession, 'pullRequestUrl'>> = JSON.parse(stdout);
+    const sessions: AgentSession[] = raw.map((s) => ({
+      ...s,
+      pullRequestUrl:
+        s.repository && s.pullRequestNumber
+          ? `https://github.com/${s.repository}/pull/${s.pullRequestNumber}`
+          : null,
+    }));
     console.log(`[sessions] Returning ${sessions.length} agent tasks`);
     return NextResponse.json(sessions);
   } catch (err) {
