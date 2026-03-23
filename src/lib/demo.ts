@@ -2,7 +2,7 @@ import { TodoItem } from "@/lib/files";
 import { COPILOT_AGENT_LOGIN } from "@/lib/constants";
 
 export const DEMO_CONFIG = {
-  ignoredRepos: ["noisy-bot-repo", "archived-2024"],
+  ignoredRepos: ["acme/noisy-bot-repo", "acme/archived-2024"],
   fontSize: "1",
 };
 

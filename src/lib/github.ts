@@ -1,4 +1,4 @@
-import { COPILOT_AGENT_LOGIN, GITHUB_ORG, isCopilotLogin } from "./constants";
+import { COPILOT_AGENT_LOGIN, GITHUB_ORGS, isCopilotLogin } from "./constants";
 import { Octokit } from "@octokit/rest";
 import { execFileSync } from "child_process";
 import { readConfig } from "./files";
@@ -136,8 +136,8 @@ export async function extractGitHubUrls(markdown: string): Promise<string[]> {
     const parsed = parseGitHubUrl(url);
     return (
       parsed &&
-      parsed.owner === GITHUB_ORG &&
-      !config.ignoredRepos.includes(parsed.repo)
+      GITHUB_ORGS.includes(parsed.owner) &&
+      !config.ignoredRepos.includes(`${parsed.owner}/${parsed.repo}`)
     );
   });
 }
@@ -171,15 +171,16 @@ export async function fetchMyPRs(): Promise<MyPullRequest[]> {
   const user = userData.login;
 
   // Fetch PRs authored by and assigned to the user (two queries, deduplicated)
+  const orgFilter = GITHUB_ORGS.map((o) => `org:${o}`).join(" ");
   const [authoredRes, assignedRes] = await Promise.all([
     octokit.search.issuesAndPullRequests({
-      q: `is:pr is:open author:${user} org:${GITHUB_ORG}`,
+      q: `is:pr is:open author:${user} ${orgFilter}`,
       sort: "updated",
       order: "desc",
       per_page: 30,
     }),
     octokit.search.issuesAndPullRequests({
-      q: `is:pr is:open assignee:${user} org:${GITHUB_ORG}`,
+      q: `is:pr is:open assignee:${user} ${orgFilter}`,
       sort: "updated",
       order: "desc",
       per_page: 30,
@@ -203,8 +204,9 @@ export async function fetchMyPRs(): Promise<MyPullRequest[]> {
   const prs = await Promise.all(
     allItems
       .filter((item) => {
-        const repo = item.repository_url.split("/").pop() ?? "";
-        return !config.ignoredRepos.includes(repo);
+        const urlParts = item.repository_url.split("/");
+        const fullName = `${urlParts[urlParts.length - 2]}/${urlParts[urlParts.length - 1]}`;
+        return !config.ignoredRepos.includes(fullName);
       })
       .map(async (item) => {
         const urlParts = item.repository_url.split("/");
@@ -428,8 +430,9 @@ export async function fetchMyIssues(): Promise<MyIssue[]> {
   const { data: userData } = await octokit.users.getAuthenticated();
   const user = userData.login;
 
+  const orgFilter = GITHUB_ORGS.map((o) => `org:${o}`).join(" ");
   const res = await octokit.search.issuesAndPullRequests({
-    q: `is:issue is:open assignee:${user} org:${GITHUB_ORG}`,
+    q: `is:issue is:open assignee:${user} ${orgFilter}`,
     sort: "updated",
     order: "desc",
     per_page: 30,
@@ -437,8 +440,9 @@ export async function fetchMyIssues(): Promise<MyIssue[]> {
 
   const issues: MyIssue[] = res.data.items
     .filter((item) => {
-      const repo = item.repository_url.split("/").pop() ?? "";
-      return !config.ignoredRepos.includes(repo);
+      const urlParts = item.repository_url.split("/");
+      const fullName = `${urlParts[urlParts.length - 2]}/${urlParts[urlParts.length - 1]}`;
+      return !config.ignoredRepos.includes(fullName);
     })
     .map((item) => {
       const urlParts = item.repository_url.split("/");
@@ -577,9 +581,10 @@ export async function fetchNotifications(options?: {
     },
   );
 
+  const orgSet = new Set(GITHUB_ORGS);
   const filtered = data
-    .filter((n) => n.repository.owner.login === GITHUB_ORG)
-    .filter((n) => !config.ignoredRepos.includes(n.repository.name))
+    .filter((n) => orgSet.has(n.repository.owner.login))
+    .filter((n) => !config.ignoredRepos.includes(n.repository.full_name))
     .filter(
       (n) => n.subject.type === "Issue" || n.subject.type === "PullRequest",
     )
@@ -640,32 +645,40 @@ export async function fetchOrgRepos(opts?: {
   if (query) {
     // Strip org prefix if user types "org/repo-name"
     const searchTerm = query.includes("/") ? query.split("/").pop()! : query;
+    const orgFilter = GITHUB_ORGS.map((o) => `org:${o}`).join(" ");
 
     // Use search API for type-ahead
     const { data } = await octokit.search.repos({
-      q: `${searchTerm} org:${GITHUB_ORG}`,
+      q: `${searchTerm} ${orgFilter}`,
       sort: "updated",
       order: "desc",
       per_page: perPage,
       page,
     });
     const repos = data.items
-      .filter((r) => !config.ignoredRepos.includes(r.name))
+      .filter((r) => !config.ignoredRepos.includes(r.full_name))
       .map((r) => ({ name: r.name, fullName: r.full_name }));
     return { repos, hasMore: data.total_count > page * perPage };
   }
 
-  const { data } = await octokit.repos.listForOrg({
-    org: GITHUB_ORG,
-    sort: "pushed",
-    direction: "desc",
-    per_page: perPage,
-    page,
-  });
-  const repos = data
-    .filter((r) => !config.ignoredRepos.includes(r.name))
-    .map((r) => ({ name: r.name, fullName: r.full_name }));
-  return { repos, hasMore: data.length === perPage };
+  // List repos for all configured orgs
+  const allRepos: OrgRepo[] = [];
+  for (const org of GITHUB_ORGS) {
+    const { data } = await octokit.repos.listForOrg({
+      org,
+      sort: "pushed",
+      direction: "desc",
+      per_page: perPage,
+      page,
+    });
+    const repos = data
+      .filter((r) => !config.ignoredRepos.includes(r.full_name))
+      .map((r) => ({ name: r.name, fullName: r.full_name }));
+    allRepos.push(...repos);
+  }
+  // Sort combined results by name and limit to perPage
+  allRepos.sort((a, b) => a.name.localeCompare(b.name));
+  return { repos: allRepos.slice(0, perPage), hasMore: allRepos.length > perPage };
 }
 
 // --- Copilot Agent Assignment ---

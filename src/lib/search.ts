@@ -1,6 +1,5 @@
 import { readLog, readRichLog } from './files';
 import { extractGitHubUrls, fetchLinkInfo, getOctokit, parseGitHubUrl } from './github';
-import { GITHUB_ORG } from './constants';
 import { callCopilot } from './copilot';
 
 export type SearchMode = 'exhaustive' | 'date_bounded' | 'recent_first';
