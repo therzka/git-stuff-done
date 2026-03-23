@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Bot, GitBranch } from 'lucide-react';
+import { Bot, GitPullRequest } from 'lucide-react';
 import { useVisibilityPolling } from '@/hooks/useVisibilityPolling';
 import type { AgentSession } from '@/app/api/sessions/route';
 
@@ -41,13 +41,11 @@ function groupByDate(sessions: AgentSession[]): [string, AgentSession[]][] {
 }
 
 function insertText(session: AgentSession): string {
-  const url =
-    session.repository && session.branch
-      ? `https://github.com/${session.repository}/tree/${session.branch}`
-      : session.repository
-      ? `https://github.com/${session.repository}`
-      : '';
-  return url ? `[${session.summary}](${url})` : session.summary;
+  if (session.pullRequestUrl && session.pullRequestTitle) {
+    return `[${session.pullRequestTitle}](${session.pullRequestUrl})`;
+  }
+  const repoUrl = session.repository ? `https://github.com/${session.repository}` : '';
+  return repoUrl ? `[${session.name}](${repoUrl})` : session.name;
 }
 
 export default function AgentSessions({
@@ -91,7 +89,7 @@ export default function AgentSessions({
   useEffect(() => () => { abortRef.current?.abort(); }, []);
 
   const visibleSessions = filterPRsOnly
-    ? sessions.filter((s) => s.refs.some((r) => r.type === 'pr'))
+    ? sessions.filter((s) => s.pullRequestNumber !== null)
     : sessions;
   const groups = groupByDate(visibleSessions);
 
@@ -151,9 +149,14 @@ export default function AgentSessions({
             </div>
             <ul className="divide-y divide-border">
               {items.map((session) => {
-                const repoName = session.repository.split('/')[1] ?? session.repository;
-                const prRefs = session.refs.filter((r) => r.type === 'pr');
-                const commitRefs = session.refs.filter((r) => r.type === 'commit');
+                const repoShort = session.repository?.split('/')[1] ?? session.repository;
+
+                const prStateClass =
+                  session.pullRequestState === 'MERGED'
+                    ? 'bg-purple-50 text-purple-700 ring-purple-600/20 dark:bg-purple-500/10 dark:text-purple-400 dark:ring-purple-500/20'
+                    : session.pullRequestState === 'CLOSED'
+                    ? 'bg-zinc-50 text-zinc-600 ring-zinc-500/20 dark:bg-zinc-500/10 dark:text-zinc-400 dark:ring-zinc-500/20'
+                    : 'bg-violet-50 text-violet-700 ring-violet-600/20 dark:bg-violet-500/10 dark:text-violet-400 dark:ring-violet-500/20';
 
                 return (
                   <li
@@ -165,7 +168,7 @@ export default function AgentSessions({
                         <button
                           onClick={() => onInsert(insertText(session))}
                           title="Insert link at cursor"
-                          aria-label={`Insert link for "${session.summary}"`}
+                          aria-label={`Insert link for "${session.name}"`}
                           className="mt-0.5 shrink-0 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-all rounded p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                         >
                           <svg className="h-3.5 w-3.5" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
@@ -175,32 +178,34 @@ export default function AgentSessions({
                       )}
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium text-foreground truncate leading-snug">
-                          {session.summary}
+                          {session.name}
                         </p>
                         <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
-                          {repoName && (
+                          {repoShort && (
                             <span className="flex items-center gap-1">
-                              <GitBranch className="h-3 w-3 shrink-0" aria-hidden="true" />
-                              <span className="truncate max-w-[140px]">{repoName}</span>
-                              {session.branch && (
-                                <span className="text-muted-foreground/60 truncate max-w-[100px]">
-                                  / {session.branch}
-                                </span>
-                              )}
+                              <GitPullRequest className="h-3 w-3 shrink-0" aria-hidden="true" />
+                              <span className="truncate max-w-[160px]">{repoShort}</span>
                             </span>
                           )}
                           <span>{timeAgo(session.createdAt)}</span>
-                          {session.turnCount > 0 && (
-                            <span className="tabular-nums">{session.turnCount} turns</span>
+                          {session.pullRequestNumber && (
+                            <a
+                              href={session.pullRequestUrl ?? '#'}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className={`rounded-full px-1.5 py-0.5 text-xs font-medium ring-1 ring-inset tabular-nums ${prStateClass}`}
+                            >
+                              PR #{session.pullRequestNumber}
+                            </a>
                           )}
-                          {prRefs.length > 0 && (
-                            <span className="rounded-full bg-violet-50 px-1.5 py-0.5 text-xs font-medium text-violet-700 ring-1 ring-inset ring-violet-600/20 dark:bg-violet-500/10 dark:text-violet-400 dark:ring-violet-500/20 tabular-nums">
-                              {prRefs.length} PR{prRefs.length !== 1 ? 's' : ''}
-                            </span>
-                          )}
-                          {commitRefs.length > 0 && (
-                            <span className="rounded-full bg-zinc-50 px-1.5 py-0.5 text-xs font-medium text-zinc-600 ring-1 ring-inset ring-zinc-500/20 dark:bg-zinc-500/10 dark:text-zinc-400 dark:ring-zinc-500/20 tabular-nums">
-                              {commitRefs.length} commit{commitRefs.length !== 1 ? 's' : ''}
+                          {session.state !== 'completed' && (
+                            <span className={`rounded-full px-1.5 py-0.5 text-xs font-medium ring-1 ring-inset ${
+                              session.state === 'in_progress'
+                                ? 'bg-blue-50 text-blue-700 ring-blue-600/20 dark:bg-blue-500/10 dark:text-blue-400 dark:ring-blue-500/20'
+                                : 'bg-amber-50 text-amber-700 ring-amber-600/20 dark:bg-amber-500/10 dark:text-amber-400 dark:ring-amber-500/20'
+                            }`}>
+                              {session.state === 'in_progress' ? 'running' : 'timed out'}
                             </span>
                           )}
                         </div>
