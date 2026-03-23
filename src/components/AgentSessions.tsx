@@ -59,6 +59,7 @@ export default function AgentSessions({
 }) {
   const [sessions, setSessions] = useState<AgentSession[]>(_sessionCache ?? []);
   const [loading, setLoading] = useState(_sessionCache === null);
+  const [filterPRsOnly, setFilterPRsOnly] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
   const refresh = useCallback(async () => {
@@ -89,7 +90,10 @@ export default function AgentSessions({
 
   useEffect(() => () => { abortRef.current?.abort(); }, []);
 
-  const groups = groupByDate(sessions);
+  const visibleSessions = filterPRsOnly
+    ? sessions.filter((s) => s.refs.some((r) => r.type === 'pr'))
+    : sessions;
+  const groups = groupByDate(visibleSessions);
 
   return (
     <div className="flex h-full flex-col">
@@ -99,9 +103,22 @@ export default function AgentSessions({
           <Bot className="h-4 w-4" aria-hidden="true" />
           Agent Sessions
         </h2>
-        <span className="text-xs text-muted-foreground">
-          {sessions.length > 0 ? `${sessions.length} sessions` : ''}
-        </span>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setFilterPRsOnly((f) => !f)}
+            title={filterPRsOnly ? 'Show all sessions' : 'Show only sessions with linked PRs'}
+            className={`rounded-lg px-2 py-0.5 text-xs font-medium transition-colors ${
+              filterPRsOnly
+                ? 'bg-accent text-accent-foreground'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+            }`}
+          >
+            PRs only
+          </button>
+          <span className="text-xs text-muted-foreground">
+            {visibleSessions.length > 0 ? `${visibleSessions.length} sessions` : ''}
+          </span>
+        </div>
       </div>
 
       {/* Body */}
@@ -117,9 +134,13 @@ export default function AgentSessions({
           </div>
         )}
 
-        {!loading && sessions.length === 0 && (
+        {!loading && visibleSessions.length === 0 && (
           <div className="flex h-full items-center justify-center text-sm text-muted-foreground px-6 text-center">
-            {isDemo ? 'Agent Sessions not available in demo mode.' : 'No sessions found.'}
+            {isDemo
+              ? 'Agent Sessions not available in demo mode.'
+              : filterPRsOnly
+              ? 'No sessions with linked PRs.'
+              : 'No sessions found.'}
           </div>
         )}
 
