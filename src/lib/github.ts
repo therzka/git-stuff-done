@@ -661,24 +661,28 @@ export async function fetchOrgRepos(opts?: {
     return { repos, hasMore: data.total_count > page * perPage };
   }
 
-  // List repos for all configured orgs
+  // List repos for all configured orgs in parallel
+  const orgResults = await Promise.all(
+    GITHUB_ORGS.map((org) =>
+      octokit.repos.listForOrg({
+        org,
+        sort: "pushed",
+        direction: "desc",
+        per_page: perPage,
+        page,
+      }),
+    ),
+  );
   const allRepos: OrgRepo[] = [];
-  for (const org of GITHUB_ORGS) {
-    const { data } = await octokit.repos.listForOrg({
-      org,
-      sort: "pushed",
-      direction: "desc",
-      per_page: perPage,
-      page,
-    });
+  let anyHasMore = false;
+  for (const { data } of orgResults) {
+    if (data.length === perPage) anyHasMore = true;
     const repos = data
       .filter((r) => !config.ignoredRepos.includes(r.full_name))
       .map((r) => ({ name: r.name, fullName: r.full_name }));
     allRepos.push(...repos);
   }
-  // Sort combined results by name and limit to perPage
-  allRepos.sort((a, b) => a.name.localeCompare(b.name));
-  return { repos: allRepos.slice(0, perPage), hasMore: allRepos.length > perPage };
+  return { repos: allRepos, hasMore: anyHasMore };
 }
 
 // --- Copilot Agent Assignment ---
