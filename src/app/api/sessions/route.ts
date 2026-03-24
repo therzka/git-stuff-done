@@ -55,7 +55,7 @@ export async function GET() {
   try {
     const raw = await fetchTasks(30);
     const sessions: AgentSession[] = raw
-      .filter((s) => s.pullRequestState !== 'MERGED')
+      .filter((s) => s.pullRequestNumber !== null && s.pullRequestState !== 'MERGED')
       .map((s) => ({
         ...s,
         taskUrl:
