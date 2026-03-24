@@ -136,69 +136,69 @@ export default function AgentSessions({
                     key={session.id}
                     className="group px-4 py-3 transition-colors hover:bg-muted/50"
                   >
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-1.5 min-w-0">
+                    <div className="flex items-start gap-2">
+                      {onInsert && (
+                        <button
+                          onClick={() => onInsert(insertText(session))}
+                          title="Insert link at cursor"
+                          aria-label={`Insert link for "${session.name}"`}
+                          className="mt-0.5 shrink-0 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-all rounded p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 16 16"
+                            fill="currentColor"
+                            className="w-4 h-4"
+                            aria-hidden="true"
+                          >
+                            <path d="M2 4.5A1.5 1.5 0 0 1 3.5 3h9A1.5 1.5 0 0 1 14 4.5v5a1.5 1.5 0 0 1-1.5 1.5H9.56l.97.97a.75.75 0 1 1-1.06 1.06l-2.25-2.25a.75.75 0 0 1 0-1.06l2.25-2.25a.75.75 0 0 1 1.06 1.06l-.97.97h2.94a.25.25 0 0 0 .25-.25v-5a.25.25 0 0 0-.25-.25h-9a.25.25 0 0 0-.25.25v2a.75.75 0 0 1-1.5 0v-2z" />
+                          </svg>
+                        </button>
+                      )}
+                      <div className="min-w-0 flex-1">
                         <a
                           href={session.taskUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-sm font-medium text-foreground truncate leading-snug hover:underline min-w-0"
+                          className="text-sm font-medium text-foreground truncate leading-snug hover:underline block"
                         >
                           {session.name}
                         </a>
-                        {onInsert && (
-                          <button
-                            onClick={() => onInsert(insertText(session))}
-                            title="Insert link at cursor"
-                            aria-label={`Insert link for "${session.name}"`}
-                            className="shrink-0 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-all rounded p-1 text-muted-foreground hover:text-foreground hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                          >
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              viewBox="0 0 16 16"
-                              fill="currentColor"
-                              className="w-4 h-4"
-                              aria-hidden="true"
+                        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
+                          {repoShort && (
+                            <span className="flex items-center gap-1">
+                              <GitPullRequest className="h-3 w-3 shrink-0" aria-hidden="true" />
+                              <span className="truncate max-w-[160px]">{repoShort}</span>
+                            </span>
+                          )}
+                          <span>{timeAgo(session.createdAt)}</span>
+                          {session.pullRequestNumber && (
+                            <a
+                              href={session.pullRequestUrl ?? '#'}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className={`rounded-full px-1.5 py-0.5 text-xs font-medium ring-1 ring-inset tabular-nums ${
+                                session.pullRequestState === 'MERGED'
+                                  ? 'bg-purple-50 text-purple-700 ring-purple-600/20 dark:bg-purple-500/10 dark:text-purple-400 dark:ring-purple-500/20'
+                                  : session.pullRequestState === 'CLOSED'
+                                  ? 'bg-zinc-50 text-zinc-600 ring-zinc-500/20 dark:bg-zinc-500/10 dark:text-zinc-400 dark:ring-zinc-500/20'
+                                  : 'bg-violet-50 text-violet-700 ring-violet-600/20 dark:bg-violet-500/10 dark:text-violet-400 dark:ring-violet-500/20'
+                              }`}
                             >
-                              <path d="M2 4.5A1.5 1.5 0 0 1 3.5 3h9A1.5 1.5 0 0 1 14 4.5v5a1.5 1.5 0 0 1-1.5 1.5H9.56l.97.97a.75.75 0 1 1-1.06 1.06l-2.25-2.25a.75.75 0 0 1 0-1.06l2.25-2.25a.75.75 0 0 1 1.06 1.06l-.97.97h2.94a.25.25 0 0 0 .25-.25v-5a.25.25 0 0 0-.25-.25h-9a.25.25 0 0 0-.25.25v2a.75.75 0 0 1-1.5 0v-2z" />
-                            </svg>
-                          </button>
-                        )}
-                      </div>
-                      <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
-                        {repoShort && (
-                          <span className="flex items-center gap-1">
-                            <GitPullRequest className="h-3 w-3 shrink-0" aria-hidden="true" />
-                            <span className="truncate max-w-[160px]">{repoShort}</span>
-                          </span>
-                        )}
-                        <span>{timeAgo(session.createdAt)}</span>
-                        {session.pullRequestNumber && (
-                          <a
-                            href={session.pullRequestUrl ?? '#'}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={(e) => e.stopPropagation()}
-                            className={`rounded-full px-1.5 py-0.5 text-xs font-medium ring-1 ring-inset tabular-nums ${
-                              session.pullRequestState === 'MERGED'
-                                ? 'bg-purple-50 text-purple-700 ring-purple-600/20 dark:bg-purple-500/10 dark:text-purple-400 dark:ring-purple-500/20'
-                                : session.pullRequestState === 'CLOSED'
-                                ? 'bg-zinc-50 text-zinc-600 ring-zinc-500/20 dark:bg-zinc-500/10 dark:text-zinc-400 dark:ring-zinc-500/20'
-                                : 'bg-violet-50 text-violet-700 ring-violet-600/20 dark:bg-violet-500/10 dark:text-violet-400 dark:ring-violet-500/20'
-                            }`}
-                          >
-                            {session.pullRequestState === 'MERGED' ? 'Merged' : session.pullRequestState === 'CLOSED' ? 'Closed' : 'Open'} #{session.pullRequestNumber}
-                          </a>
-                        )}
-                        {session.state !== 'completed' && (
-                          <span className={`rounded-full px-1.5 py-0.5 text-xs font-medium ring-1 ring-inset ${
-                            session.state === 'in_progress'
-                              ? 'bg-blue-50 text-blue-700 ring-blue-600/20 dark:bg-blue-500/10 dark:text-blue-400 dark:ring-blue-500/20'
-                              : 'bg-amber-50 text-amber-700 ring-amber-600/20 dark:bg-amber-500/10 dark:text-amber-400 dark:ring-amber-500/20'
-                          }`}>
-                            {session.state === 'in_progress' ? 'running' : 'timed out'}
-                          </span>
-                        )}
+                              {session.pullRequestState === 'MERGED' ? 'Merged' : session.pullRequestState === 'CLOSED' ? 'Closed' : 'Open'} #{session.pullRequestNumber}
+                            </a>
+                          )}
+                          {session.state !== 'completed' && (
+                            <span className={`rounded-full px-1.5 py-0.5 text-xs font-medium ring-1 ring-inset ${
+                              session.state === 'in_progress'
+                                ? 'bg-blue-50 text-blue-700 ring-blue-600/20 dark:bg-blue-500/10 dark:text-blue-400 dark:ring-blue-500/20'
+                                : 'bg-amber-50 text-amber-700 ring-amber-600/20 dark:bg-amber-500/10 dark:text-amber-400 dark:ring-amber-500/20'
+                            }`}>
+                              {session.state === 'in_progress' ? 'running' : 'timed out'}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </li>

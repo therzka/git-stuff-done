@@ -58,7 +58,9 @@ export async function GET() {
       .filter((s) => s.pullRequestState !== 'MERGED')
       .map((s) => ({
         ...s,
-        taskUrl: `https://github.com/copilot/agents/${s.id}`,
+        taskUrl: s.repository
+          ? `https://github.com/${s.repository}/tasks/${s.id}`
+          : `https://github.com/copilot/agents/${s.id}`,
       }));
     console.log(`[sessions] Returning ${sessions.length} agent tasks`);
     return NextResponse.json(sessions);
