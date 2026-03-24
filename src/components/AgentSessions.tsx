@@ -189,10 +189,10 @@ export default function AgentSessions({
                                   ? 'bg-purple-50 text-purple-700 ring-purple-600/20 dark:bg-purple-500/10 dark:text-purple-400 dark:ring-purple-500/20'
                                   : session.pullRequestState === 'CLOSED'
                                   ? 'bg-zinc-50 text-zinc-600 ring-zinc-500/20 dark:bg-zinc-500/10 dark:text-zinc-400 dark:ring-zinc-500/20'
-                                  : 'bg-violet-50 text-violet-700 ring-violet-600/20 dark:bg-violet-500/10 dark:text-violet-400 dark:ring-violet-500/20'
+                                  : 'bg-muted text-muted-foreground ring-border'
                               }`}
                             >
-                              {session.pullRequestState === 'MERGED' ? 'Merged' : session.pullRequestState === 'CLOSED' ? 'Closed' : session.pullRequestState === 'OPEN' ? 'Open' : 'Draft'} #{session.pullRequestNumber}
+                              PR #{session.pullRequestNumber}
                             </a>
                           )}
                           {session.state !== 'completed' && (
