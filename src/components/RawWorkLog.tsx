@@ -110,6 +110,7 @@ export default function RawWorkLog({ date, isDemo = false, onRegisterInsert }: R
 
   const handleEditorUpdate = useCallback((markdown: string) => {
     latestContentRef.current = markdown;
+    setContent(markdown);
     scheduleAutosave(markdown);
   }, [scheduleAutosave]);
 

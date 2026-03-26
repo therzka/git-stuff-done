@@ -71,6 +71,9 @@ function parseFilename(filename: string): string {
     day: "numeric",
     year: "numeric",
   });
+  if (slug.startsWith("search-") || slug === "search-result") {
+    return `${formattedDate} — AI Search`;
+  }
   const UPPERCASE_WORDS = new Set(["ai", "ci", "pr", "api", "ui", "css", "sdk"]);
   const title = slug
     .split("-")

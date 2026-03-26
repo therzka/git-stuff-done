@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { X, AlertTriangle, Search } from 'lucide-react';
+import { X, AlertTriangle, Search, Square, CheckCircle2 } from 'lucide-react';
 import { useModels } from '@/hooks/useModels';
 import MarkdownViewer from '@/components/MarkdownViewer';
 
@@ -51,6 +51,8 @@ export default function AiModal({ isOpen, onClose, defaultTab, defaultDate, isDe
   const [canContinue, setCanContinue] = useState(false);
   const [searchMode, setSearchMode] = useState<string | null>(null);
   const [progressMessage, setProgressMessage] = useState<string | null>(null);
+  const [savingSearch, setSavingSearch] = useState(false);
+  const [searchSaveMessage, setSearchSaveMessage] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const demoInitRef = useRef(false);
 
@@ -61,6 +63,7 @@ export default function AiModal({ isOpen, onClose, defaultTab, defaultDate, isDe
   const [customPrompt, setCustomPrompt] = useState(DEFAULT_PROMPTS[0].value);
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [summaryResult, setSummaryResult] = useState<string | null>(null);
   const [summaryError, setSummaryError] = useState<string | null>(null);
 
@@ -78,6 +81,8 @@ export default function AiModal({ isOpen, onClose, defaultTab, defaultDate, isDe
     setSearchMode(null);
     setProgressMessage(null);
     setSearchLoading(false);
+    setSavingSearch(false);
+    setSearchSaveMessage(null);
     // Reset summarize state
     setStartDate(defaultDate);
     setEndDate(defaultDate);
@@ -87,6 +92,7 @@ export default function AiModal({ isOpen, onClose, defaultTab, defaultDate, isDe
     setSummaryError(null);
     setSummaryLoading(false);
     setSaving(false);
+    setSaveMessage(null);
     onClose();
   }, [defaultDate, onClose]);
 
@@ -224,12 +230,71 @@ export default function AiModal({ isOpen, onClose, defaultTab, defaultDate, isDe
     }
   };
 
+  const handleStop = () => {
+    abortRef.current?.abort();
+    abortRef.current = null;
+    setSearchLoading(false);
+    setProgressMessage(null);
+    setSearchResult(null);
+    setSearchError(null);
+    setDaysSearched(0);
+    setCanContinue(false);
+    setSearchMode(null);
+  };
+
+  const saveSearchToRepo = async () => {
+    if (!searchResult) return;
+    if (isDemo) {
+      setSearchSaveMessage(`summaries/${todayISO()}-search-result.md`);
+      return;
+    }
+    setSavingSearch(true);
+    setSearchError(null);
+
+    try {
+      const slug = query.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40);
+      const filename = `${todayISO()}-search-${slug || 'result'}.md`;
+      const content = `# Search: ${query.trim()}\n\n${searchResult}`;
+
+      const res = await fetch('/api/summary/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filename, content }),
+      });
+
+      if (!res.ok) throw new Error('Failed to save');
+
+      const data = await res.json();
+      const msg = data.committed ? 'Saved and committed!' : 'Saved to disk.';
+      setSearchSaveMessage(`${msg} summaries/${filename}`);
+    } catch {
+      setSearchError('Failed to save search result to repository.');
+    } finally {
+      setSavingSearch(false);
+    }
+  };
+
+  const downloadSearchMarkdown = () => {
+    if (!searchResult) return;
+    const content = `# Search: ${query.trim()}\n\n${searchResult}`;
+    const blob = new Blob([content], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `search-result-${todayISO()}.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   // --- Summarize logic ---
 
   const generateSummary = async () => {
     setSummaryLoading(true);
     setSummaryError(null);
     setSummaryResult(null);
+    setSaveMessage(null);
 
     if (isDemo) {
       setTimeout(() => {
@@ -264,7 +329,8 @@ export default function AiModal({ isOpen, onClose, defaultTab, defaultDate, isDe
   const saveToRepo = async () => {
     if (!summaryResult) return;
     if (isDemo) {
-      alert("In demo mode, this would save to: summaries/" + endDate + "-summary.md");
+      const slug = DEFAULT_PROMPTS.find(p => p.value === customPrompt)?.label.toLowerCase().replace(/\s+/g, '-') ?? 'custom-summary';
+      setSaveMessage(`summaries/${endDate}-${slug}.md`);
       return;
     }
     setSaving(true);
@@ -287,10 +353,9 @@ export default function AiModal({ isOpen, onClose, defaultTab, defaultDate, isDe
       if (!res.ok) throw new Error('Failed to save summary');
 
       const data = await res.json();
-      const msg = data.committed ? 'Saved and pushed to repo!' : 'Saved to disk (commit skipped/failed).';
-      alert(`${msg}\nFile: summaries/${filename}`);
-    } catch (err) {
-      console.error(err);
+      const msg = data.committed ? 'Saved and committed!' : 'Saved to disk.';
+      setSaveMessage(`${msg} summaries/${filename}`);
+    } catch {
       setSummaryError('Failed to save summary to repository.');
     } finally {
       setSaving(false);
@@ -388,7 +453,7 @@ export default function AiModal({ isOpen, onClose, defaultTab, defaultDate, isDe
 
               {/* Long search warning */}
               {showLongSearchWarning && !exhausted && (
-                <div className="text-sm text-amber-600 bg-amber-50 dark:bg-amber-900/20 dark:text-amber-400 p-3 rounded-xl border border-amber-100 dark:border-amber-900/50 flex items-center gap-2">
+                <div className="text-sm text-warning-foreground bg-warning/10 p-3 rounded-xl border border-warning/20 flex items-center gap-2">
                   <span>⏳</span> Searching far back in history — this may take a while.
                 </div>
               )}
@@ -428,6 +493,13 @@ export default function AiModal({ isOpen, onClose, defaultTab, defaultDate, isDe
               {searchError && (
                 <div className="text-sm text-destructive bg-destructive/10 p-4 rounded-xl border border-destructive/20 flex items-center gap-2">
                   <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" /> {searchError}
+                </div>
+              )}
+
+              {/* Save success */}
+              {searchSaveMessage && (
+                <div className="text-sm text-success bg-success/10 p-4 rounded-xl border border-success/20 flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" /> {searchSaveMessage}
                 </div>
               )}
             </div>
@@ -540,6 +612,13 @@ export default function AiModal({ isOpen, onClose, defaultTab, defaultDate, isDe
                   <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" /> {summaryError}
                 </div>
               )}
+
+              {/* Save success */}
+              {saveMessage && (
+                <div className="text-sm text-success bg-success/10 p-4 rounded-xl border border-success/20 flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" /> {saveMessage}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -550,21 +629,46 @@ export default function AiModal({ isOpen, onClose, defaultTab, defaultDate, isDe
             <>
               <div className="flex gap-2">
                 {searchResult && (
-                  <button
-                    onClick={() => navigator.clipboard.writeText(searchResult)}
-                    className="rounded-xl px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:shadow-sm border border-transparent hover:border-border transition-all"
-                  >
-                    Copy
-                  </button>
+                  <>
+                    <button
+                      onClick={() => navigator.clipboard.writeText(searchResult)}
+                      className="rounded-xl px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:shadow-sm border border-transparent hover:border-border transition-all"
+                    >
+                      Copy
+                    </button>
+                    <button
+                      onClick={downloadSearchMarkdown}
+                      className="rounded-xl px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:shadow-sm border border-transparent hover:border-border transition-all"
+                    >
+                      Download .md
+                    </button>
+                    <button
+                      onClick={saveSearchToRepo}
+                      disabled={savingSearch}
+                      className="rounded-xl px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:shadow-sm border border-transparent hover:border-border transition-all disabled:opacity-50"
+                    >
+                      {savingSearch ? 'Committing...' : 'Save & Commit'}
+                    </button>
+                  </>
                 )}
               </div>
-              <button
-                onClick={() => handleSearch(0)}
-                disabled={searchLoading || !query.trim()}
-                className="rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition-all hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {searchLoading ? 'Searching…' : <><Search className="h-3.5 w-3.5 inline-block mr-1.5" aria-hidden="true" />Search</>}
-              </button>
+              {searchLoading ? (
+                <button
+                  onClick={handleStop}
+                  className="rounded-xl bg-destructive px-6 py-2.5 text-sm font-semibold text-destructive-foreground shadow-sm transition-all hover:opacity-90"
+                >
+                  <Square className="h-3.5 w-3.5 inline-block mr-1.5 fill-current" aria-hidden="true" />
+                  Stop
+                </button>
+              ) : (
+                <button
+                  onClick={() => handleSearch(0)}
+                  disabled={!query.trim()}
+                  className="rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition-all hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Search className="h-3.5 w-3.5 inline-block mr-1.5" aria-hidden="true" />Search
+                </button>
+              )}
             </>
           ) : (
             <>

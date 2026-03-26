@@ -183,7 +183,7 @@ export default function TodoList({ date, isDemo = false }: { date?: string, isDe
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
         <h2 className="text-base font-semibold text-primary flex items-center gap-2">
           <ClipboardList className="h-4 w-4" aria-hidden="true" />
-          TODO
+          TODOs
         </h2>
         <button
           onClick={suggest}
