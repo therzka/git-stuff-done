@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { FileText, Link2 } from 'lucide-react';
 import TiptapEditor, { type TiptapEditorHandle } from './TiptapEditor';
 import { DEMO_LOG_CONTENT, DEMO_RICH_LOG_CONTENT } from '@/lib/demo';
+import SlackThreadModal from './SlackThreadModal';
 
 type SaveStatus = 'idle' | 'unsaved' | 'saving' | 'saved';
 
@@ -29,6 +30,7 @@ export default function RawWorkLog({ date, isDemo = false, onRegisterInsert }: R
   const [content, setContent] = useState('');
   const [status, setStatus] = useState<SaveStatus>('idle');
   const [linkifying, setLinkifying] = useState(false);
+  const [slackModalUrl, setSlackModalUrl] = useState<string | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const latestContentRef = useRef(content);
   const editorRef = useRef<TiptapEditorHandle>(null);
@@ -153,6 +155,13 @@ export default function RawWorkLog({ date, isDemo = false, onRegisterInsert }: R
         content={content}
         onUpdate={handleEditorUpdate}
         placeholder={"Start typing your work log..."}
+        onSlackLinkClick={setSlackModalUrl}
+      />
+      <SlackThreadModal
+        isOpen={slackModalUrl !== null}
+        onClose={() => setSlackModalUrl(null)}
+        url={slackModalUrl ?? ''}
+        onInsert={(text) => editorRef.current?.insertAtCursor(text)}
       />
     </div>
   );
