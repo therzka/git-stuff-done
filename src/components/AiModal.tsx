@@ -51,6 +51,8 @@ export default function AiModal({ isOpen, onClose, defaultTab, defaultDate, isDe
   const [canContinue, setCanContinue] = useState(false);
   const [searchMode, setSearchMode] = useState<string | null>(null);
   const [progressMessage, setProgressMessage] = useState<string | null>(null);
+  const [savingSearch, setSavingSearch] = useState(false);
+  const [searchSaveMessage, setSearchSaveMessage] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const demoInitRef = useRef(false);
 
@@ -79,6 +81,8 @@ export default function AiModal({ isOpen, onClose, defaultTab, defaultDate, isDe
     setSearchMode(null);
     setProgressMessage(null);
     setSearchLoading(false);
+    setSavingSearch(false);
+    setSearchSaveMessage(null);
     // Reset summarize state
     setStartDate(defaultDate);
     setEndDate(defaultDate);
@@ -236,6 +240,52 @@ export default function AiModal({ isOpen, onClose, defaultTab, defaultDate, isDe
     setDaysSearched(0);
     setCanContinue(false);
     setSearchMode(null);
+  };
+
+  const saveSearchToRepo = async () => {
+    if (!searchResult) return;
+    if (isDemo) {
+      setSearchSaveMessage(`summaries/${todayISO()}-search-result.md`);
+      return;
+    }
+    setSavingSearch(true);
+    setSearchError(null);
+
+    try {
+      const slug = query.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40);
+      const filename = `${todayISO()}-search-${slug || 'result'}.md`;
+      const content = `# Search: ${query.trim()}\n\n${searchResult}`;
+
+      const res = await fetch('/api/summary/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filename, content }),
+      });
+
+      if (!res.ok) throw new Error('Failed to save');
+
+      const data = await res.json();
+      const msg = data.committed ? 'Saved and committed!' : 'Saved to disk.';
+      setSearchSaveMessage(`${msg} summaries/${filename}`);
+    } catch {
+      setSearchError('Failed to save search result to repository.');
+    } finally {
+      setSavingSearch(false);
+    }
+  };
+
+  const downloadSearchMarkdown = () => {
+    if (!searchResult) return;
+    const content = `# Search: ${query.trim()}\n\n${searchResult}`;
+    const blob = new Blob([content], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `search-result-${todayISO()}.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   // --- Summarize logic ---
@@ -445,6 +495,13 @@ export default function AiModal({ isOpen, onClose, defaultTab, defaultDate, isDe
                   <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" /> {searchError}
                 </div>
               )}
+
+              {/* Save success */}
+              {searchSaveMessage && (
+                <div className="text-sm text-success bg-success/10 p-4 rounded-xl border border-success/20 flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" /> {searchSaveMessage}
+                </div>
+              )}
             </div>
           </div>
 
@@ -572,12 +629,27 @@ export default function AiModal({ isOpen, onClose, defaultTab, defaultDate, isDe
             <>
               <div className="flex gap-2">
                 {searchResult && (
-                  <button
-                    onClick={() => navigator.clipboard.writeText(searchResult)}
-                    className="rounded-xl px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:shadow-sm border border-transparent hover:border-border transition-all"
-                  >
-                    Copy
-                  </button>
+                  <>
+                    <button
+                      onClick={() => navigator.clipboard.writeText(searchResult)}
+                      className="rounded-xl px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:shadow-sm border border-transparent hover:border-border transition-all"
+                    >
+                      Copy
+                    </button>
+                    <button
+                      onClick={downloadSearchMarkdown}
+                      className="rounded-xl px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:shadow-sm border border-transparent hover:border-border transition-all"
+                    >
+                      Download .md
+                    </button>
+                    <button
+                      onClick={saveSearchToRepo}
+                      disabled={savingSearch}
+                      className="rounded-xl px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:shadow-sm border border-transparent hover:border-border transition-all disabled:opacity-50"
+                    >
+                      {savingSearch ? 'Committing...' : 'Save & Commit'}
+                    </button>
+                  </>
                 )}
               </div>
               {searchLoading ? (
