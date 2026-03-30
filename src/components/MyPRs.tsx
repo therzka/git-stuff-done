@@ -134,7 +134,7 @@ export default function MyPRs({
                     <button
                       onClick={() =>
                         onInsert(
-                          `[${pr.repoFullName}#${pr.number} ${pr.title}](${pr.url})`,
+                          `[${pr.title} (${pr.repoFullName}#${pr.number})](${pr.url})`,
                         )
                       }
                       title="Insert link at cursor"

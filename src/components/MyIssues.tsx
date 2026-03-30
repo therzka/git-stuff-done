@@ -164,7 +164,7 @@ export default function MyIssues({
                     <button
                       onClick={() =>
                         onInsert(
-                          `[${issue.repoFullName}#${issue.number} ${issue.title}](${issue.url})`,
+                          `[${issue.title} (${issue.repoFullName}#${issue.number})](${issue.url})`,
                         )
                       }
                       title="Insert link at cursor"
