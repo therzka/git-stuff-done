@@ -23,6 +23,7 @@
 - **📋 Saved Summaries** — Browse, preview, copy, and delete past AI-generated summaries. Opens from the toolbar 📋 button. Summaries render as rich text with markdown-on-copy.
 - **✅ TODO List** — Manual TODOs with inline editing + AI-suggested action items based on your work log.
 - **@️ @Mentions** — Type `@` in the editor to search your GitHub org's members. A dropdown shows matching usernames with avatars; select one to insert a bold, linked mention (e.g. **[@username](https://github.com/username)**). Supports keyboard navigation (↑/↓/Enter/Esc).
+- **💬 Slack Thread Viewer** — Hover over Slack permalink URLs in your work log to reveal a "View thread" button. Click to open a modal that loads and displays the conversation as rich text. Requires the [gh-slack extension](https://github.com/rneatherway/gh-slack) for production use. Demo mode includes mock Slack threads for preview.
 - **🔀 My PRs** — Live feed of your open PRs (authored or assigned) in your GitHub org with status badges: **Copilot** (authored by Copilot, you're an assignee), **Draft**, **Queued** / **Merging** (merge queue), **CI Failing** (required checks only), **Needs Review** (awaiting human review), and **unanswered comment count** (excludes bots and resolved threads). Click the insert button on any PR to paste its link at the cursor in your work log.
 - **🐛 My Issues** — Open issues assigned to you across your GitHub org, showing labels (toggleable) and comment counts. Linked PRs appear as chips styled by state (open/draft/merged/closed). Click the insert button to paste a link at the cursor in your work log.
 - **🤖 Assign to Copilot** — From the My Issues panel, hover over any issue without a linked PR and click the Copilot icon to assign it to the GitHub Copilot coding agent. A modal lets you select the **target repository** (where the PR will be created — useful when issues live in a tracker repo but code lives elsewhere), the **AI model** for Copilot to use, and provide **additional instructions**. Issues already assigned to Copilot show a "Copilot" badge. Uses the GitHub REST API with the `agent_assignment` parameter for cross-repo PR creation.
@@ -41,6 +42,7 @@
   - Requires a GitHub Copilot subscription (free tier available)
 - **A GitHub Personal Access Token (PAT)** with read-only scopes — see setup step 2 below.
 - **GitHub CLI** (`gh`) — optional, only needed if you skip the PAT step. If present and authenticated, it's used as a fallback for GitHub API access.
+- **gh-slack extension** — optional, enables Slack thread viewing. Install with: `gh extension install https://github.com/rneatherway/gh-slack`. Not needed for demo mode.
 
 ## Setup
 
