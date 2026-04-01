@@ -2,6 +2,12 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useEditor, EditorContent } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import Link from '@tiptap/extension-link';
+import TaskList from '@tiptap/extension-task-list';
+import TaskItem from '@tiptap/extension-task-item';
+import { Markdown } from 'tiptap-markdown';
 
 interface SlackThreadModalProps {
   isOpen: boolean;
@@ -15,6 +21,30 @@ export default function SlackThreadModal({ isOpen, onClose, url, onInsert }: Sla
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
+
+  // Create a read-only Tiptap editor to render the markdown as rich text
+  const editor = useEditor({
+    immediatelyRender: false,
+    editable: false,
+    extensions: [
+      StarterKit,
+      Link.configure({
+        openOnClick: true,
+        autolink: true,
+        HTMLAttributes: {
+          target: '_blank',
+          rel: 'noopener noreferrer',
+        },
+      }),
+      TaskList,
+      TaskItem.configure({ nested: true }),
+      Markdown.configure({
+        tightLists: true,
+        linkify: true,
+      }),
+    ],
+    content: '',
+  });
 
   useEffect(() => {
     if (!isOpen || !url) return;
@@ -30,7 +60,12 @@ export default function SlackThreadModal({ isOpen, onClose, url, onInsert }: Sla
         if (data.error) {
           setError(data.error);
         } else {
-          setMarkdown(data.markdown ?? '');
+          const md = data.markdown ?? '';
+          setMarkdown(md);
+          // Update the read-only editor with the markdown content
+          if (editor) {
+            editor.commands.setContent(md);
+          }
         }
       })
       .catch(() => {
@@ -41,7 +76,7 @@ export default function SlackThreadModal({ isOpen, onClose, url, onInsert }: Sla
       });
 
     return () => { cancelled = true; };
-  }, [isOpen, url]);
+  }, [isOpen, url, editor]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -108,10 +143,11 @@ export default function SlackThreadModal({ isOpen, onClose, url, onInsert }: Sla
               {error}
             </div>
           )}
-          {markdown !== null && !loading && (
-            <pre className="text-sm text-foreground whitespace-pre-wrap font-mono leading-relaxed">
-              {markdown}
-            </pre>
+          {markdown !== null && !loading && editor && (
+            <EditorContent 
+              editor={editor} 
+              className="tiptap-editor prose prose-sm dark:prose-invert max-w-none"
+            />
           )}
         </div>
 
