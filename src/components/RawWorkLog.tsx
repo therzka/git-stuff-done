@@ -51,6 +51,8 @@ export default function RawWorkLog({ date, isDemo = false, onRegisterInsert }: R
       }
     }
     fetchLog();
+    // Preload org members cache so @mention search is instant
+    if (!isDemo) fetch('/api/org-members?preload=1').catch(() => {});
     return () => { cancelled = true; };
   }, [currentDate, isDemo]);
 

@@ -317,6 +317,75 @@ pre {
   font-style: italic;
 }
 
+/* @mention nodes in the editor */
+.tiptap-editor .tiptap .mention-node {
+  font-weight: 700;
+  color: var(--primary);
+  background: var(--accent);
+  border-radius: 0.25rem;
+  padding: 0.0625rem 0.25rem;
+  text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.tiptap-editor .tiptap .mention-node:hover {
+  opacity: 0.8;
+}
+
+/* @mention suggestion dropdown */
+.mention-dropdown {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  padding: 0.25rem;
+  max-height: 240px;
+  overflow-y: auto;
+  min-width: 180px;
+}
+
+.mention-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.375rem 0.5rem;
+  border-radius: 0.375rem;
+  border: none;
+  background: transparent;
+  color: var(--foreground);
+  font-size: 0.8125rem;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.1s;
+}
+
+.mention-dropdown-item:hover,
+.mention-dropdown-item.is-selected {
+  background: var(--accent);
+}
+
+.mention-dropdown-hint {
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+.mention-avatar {
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 9999px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.mention-login {
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* Focus-visible indicators for keyboard navigation */
 button:focus-visible,
 a:focus-visible,
