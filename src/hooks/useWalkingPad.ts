@@ -36,6 +36,7 @@ export interface UseWalkingPadReturn {
   setSpeedMph: (mph: number) => void;
 
   currentSession: Session | null;
+  logs: string[];
 }
 
 const loadLib = () => import('walkingpad-js');
@@ -53,13 +54,23 @@ export function useWalkingPad(): UseWalkingPadReturn {
   const [steps, setSteps] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
   const [currentSession, setCurrentSession] = useState<Session | null>(null);
+  const [logs, setLogs] = useState<string[]>([]);
 
   const prevIsRunning = useRef(false);
   const sessionRef = useRef<Session | null>(null);
 
+  const log = useCallback((msg: string) => {
+    const ts = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const entry = `[${ts}] ${msg}`;
+    console.log(`[WalkingPad] ${msg}`);
+    setLogs((prev) => [...prev.slice(-99), entry]);
+  }, []);
+
   const getManager = useCallback(async (): Promise<WalkingPadBLEManager> => {
     if (sharedManager) return sharedManager;
+    log('Loading walkingpad-js library…');
     const lib = await loadLib();
+    log('Creating BLE adapter (FTMS service filter)…');
     // Use service-based filter (FTMS UUID) instead of name prefixes so the
     // Chrome BLE picker shows the device even if its name doesn't start with
     // "Walking" or "KS". This matches any FTMS-compatible fitness treadmill.
@@ -68,13 +79,14 @@ export function useWalkingPad(): UseWalkingPadReturn {
       defaultFilters: [{ services: [FTMS_SERVICE_UUID] }],
     });
     sharedManager = lib.createManager(adapter);
+    log('Manager created');
     const throttled = lib.createThrottledSetSpeed(
       (kmh: number) => sharedManager!.setSpeed(kmh),
       { intervalMs: 300 },
     );
     sharedThrottledSetSpeed = throttled;
     return sharedManager;
-  }, []);
+  }, [log]);
 
   // Event handlers — stable refs so we can attach/detach cleanly
   const handleState = useCallback((state: WalkingPadState) => {
@@ -94,14 +106,16 @@ export function useWalkingPad(): UseWalkingPadReturn {
     }
   }, []);
 
-  const handleConnectionStateChange = useCallback(({ to }: { from: ConnectionState; to: ConnectionState }) => {
+  const handleConnectionStateChange = useCallback(({ from, to }: { from: ConnectionState; to: ConnectionState }) => {
+    log(`Connection: ${from} → ${to}`);
     setConnectionState(to);
     if (to === 'connected') setError(null);
-  }, []);
+  }, [log]);
 
   const handleError = useCallback((err: Error) => {
+    log(`Error: ${err.message}`);
     setError(err.message);
-  }, []);
+  }, [log]);
 
   // Session tracking: detect running transitions
   useEffect(() => {
@@ -126,6 +140,7 @@ export function useWalkingPad(): UseWalkingPadReturn {
 
     async function init() {
       try {
+        log('Initializing BLE manager…');
         const pad = await getManager();
         if (cancelled) return;
 
@@ -133,17 +148,20 @@ export function useWalkingPad(): UseWalkingPadReturn {
         pad.events.on('connectionStateChange', handleConnectionStateChange);
         pad.events.on('error', handleError);
 
-        // Sync current connection state
-        setConnectionState(pad.getConnectionState());
+        const state = pad.getConnectionState();
+        log(`Current state: ${state}`);
+        setConnectionState(state);
 
         // Silent reconnect attempt
         try {
-          await pad.reconnect();
+          log('Attempting auto-reconnect to remembered device…');
+          const ok = await pad.reconnect();
+          log(ok ? 'Auto-reconnect successful' : 'No remembered device found');
         } catch {
-          // Expected to fail if no remembered device — ignore
+          log('Auto-reconnect skipped (no saved device)');
         }
-      } catch {
-        // Dynamic import or BLE init failure — not critical during mount
+      } catch (err) {
+        log(`Init failed: ${err instanceof Error ? err.message : 'unknown error'}`);
       }
     }
 
@@ -163,39 +181,55 @@ export function useWalkingPad(): UseWalkingPadReturn {
   const connect = useCallback(async () => {
     setError(null);
     try {
+      log('Opening BLE device picker…');
       const pad = await getManager();
       await pad.connect({ rememberDevice: true });
+      log('Connected (device remembered for next time)');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to connect');
+      const msg = err instanceof Error ? err.message : 'Failed to connect';
+      log(`Connect failed: ${msg}`);
+      setError(msg);
     }
-  }, [getManager]);
+  }, [getManager, log]);
 
   const disconnect = useCallback(async () => {
     try {
+      log('Disconnecting…');
       const pad = await getManager();
       await pad.disconnect();
+      log('Disconnected');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to disconnect');
+      const msg = err instanceof Error ? err.message : 'Failed to disconnect';
+      log(`Disconnect failed: ${msg}`);
+      setError(msg);
     }
-  }, [getManager]);
+  }, [getManager, log]);
 
   const start = useCallback(async () => {
     try {
+      log('Starting treadmill…');
       const pad = await getManager();
       await pad.start();
+      log('Start command sent');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to start');
+      const msg = err instanceof Error ? err.message : 'Failed to start';
+      log(`Start failed: ${msg}`);
+      setError(msg);
     }
-  }, [getManager]);
+  }, [getManager, log]);
 
   const stop = useCallback(async () => {
     try {
+      log('Stopping treadmill…');
       const pad = await getManager();
       await pad.stop();
+      log('Stop command sent');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to stop');
+      const msg = err instanceof Error ? err.message : 'Failed to stop';
+      log(`Stop failed: ${msg}`);
+      setError(msg);
     }
-  }, [getManager]);
+  }, [getManager, log]);
 
   const setSpeedMph = useCallback((mph: number) => {
     const kmh = Math.min(MAX_SPEED_KMH, Math.max(MIN_SPEED_KMH, mph * MPH_TO_KMH));
@@ -216,5 +250,6 @@ export function useWalkingPad(): UseWalkingPadReturn {
     stop,
     setSpeedMph,
     currentSession,
+    logs,
   };
 }

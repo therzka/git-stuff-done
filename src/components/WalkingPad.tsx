@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Activity, Bluetooth, BluetoothOff, Minus, Footprints, Play, Plus, Square, Timer, Zap } from 'lucide-react';
+import { Activity, Bluetooth, BluetoothOff, ChevronDown, ChevronRight, Minus, Footprints, Play, Plus, Square, Timer, Zap } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { useWalkingPad } from '@/hooks/useWalkingPad';
 import { useVisibilityPolling } from '@/hooks/useVisibilityPolling';
@@ -97,6 +97,8 @@ export default function WalkingPad({
   const [walksLoading, setWalksLoading] = useState(_walksCache === null);
   const [tab, setTab] = useState<TabId>('controls');
   const [targetSpeed, setTargetSpeed] = useState(SPEED_DEFAULT);
+  const [logsOpen, setLogsOpen] = useState(false);
+  const logsEndRef = useRef<HTMLDivElement | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const prevSessionRef = useRef<typeof pad.currentSession>(null);
 
@@ -122,6 +124,11 @@ export default function WalkingPad({
   useVisibilityPolling(refreshWalks, 60_000);
   useEffect(() => { refreshWalks(_walksCache === null); }, [refreshWalks]);
   useEffect(() => () => { abortRef.current?.abort(); }, []);
+
+  // Auto-scroll logs
+  useEffect(() => {
+    if (logsOpen) logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [pad.logs, logsOpen]);
 
   // ── Auto-log session when treadmill stops ───────────────────────
   useEffect(() => {
@@ -337,6 +344,31 @@ export default function WalkingPad({
                 <span className="text-[10px]">Requires Chrome or Edge.</span>
               </p>
             )}
+
+            {/* Connection log */}
+            <div className="border-t border-border pt-2">
+              <button
+                onClick={() => setLogsOpen((v) => !v)}
+                className="flex w-full items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {logsOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                BLE Log {pad.logs.length > 0 && <span className="tabular-nums">({pad.logs.length})</span>}
+              </button>
+              {logsOpen && (
+                <div className="mt-1 max-h-40 overflow-y-auto rounded-lg bg-muted/50 p-2 font-mono text-[10px] leading-relaxed text-muted-foreground">
+                  {pad.logs.length === 0 ? (
+                    <span className="italic">No logs yet</span>
+                  ) : (
+                    pad.logs.map((entry, i) => (
+                      <div key={i} className={entry.includes('Error') || entry.includes('failed') ? 'text-destructive' : ''}>
+                        {entry}
+                      </div>
+                    ))
+                  )}
+                  <div ref={logsEndRef} />
+                </div>
+              )}
+            </div>
           </div>
         )}
 
