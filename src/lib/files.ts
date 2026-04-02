@@ -11,6 +11,17 @@ export type TodoItem = {
   createdAt: string;
 };
 
+export type WalkSession = {
+  id: string;
+  startedAt: string;
+  endedAt: string;
+  durationSec: number;
+  distanceMi: number;
+  steps: number;
+  avgSpeedMph: number;
+  maxSpeedMph: number;
+};
+
 export type AppConfig = {
   ignoredRepos: string[];
   fontSize: string;
@@ -142,6 +153,26 @@ export async function readTodos(): Promise<TodoItem[]> {
 export async function writeTodos(todos: TodoItem[]): Promise<void> {
   await ensureDirs();
   await writeFile(todosPath(), JSON.stringify(todos, null, 2), "utf-8");
+}
+
+// --- Walk Session I/O ---
+
+function walksPath(): string {
+  return path.join(dataDir(), "walks.json");
+}
+
+export async function readWalks(): Promise<WalkSession[]> {
+  try {
+    const raw = await readFile(walksPath(), "utf-8");
+    return JSON.parse(raw) as WalkSession[];
+  } catch {
+    return [];
+  }
+}
+
+export async function writeWalks(walks: WalkSession[]): Promise<void> {
+  await ensureDirs();
+  await writeFile(walksPath(), JSON.stringify(walks, null, 2), "utf-8");
 }
 
 // --- Config I/O ---

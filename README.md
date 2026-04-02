@@ -28,6 +28,7 @@
 - **🤖 Assign to Copilot** — From the My Issues panel, hover over any issue without a linked PR and click the Copilot icon to assign it to the GitHub Copilot coding agent. A modal lets you select the **target repository** (where the PR will be created — useful when issues live in a tracker repo but code lives elsewhere), the **AI model** for Copilot to use, and provide **additional instructions**. Issues already assigned to Copilot show a "Copilot" badge. Uses the GitHub REST API with the `agent_assignment` parameter for cross-repo PR creation.
 - **🔔 Notifications** — Filtered GitHub notifications: reviews requested, mentions, assignments, and activity on your issues/PRs. Click the insert button to paste a link at the cursor. Dismiss individual notifications with the X button (reappear on reload).
 - **🤖 Agent Sessions** — Browse recent Copilot CLI sessions pulled from `~/.copilot/session-store.db`. Sessions are grouped by date (**Today / Yesterday / This Week / Older**) and each entry shows the session summary, turn count, time elapsed, and any linked PR or commit badges. Hover any session to reveal an insert button that pastes a formatted markdown link into your Work Log. Hidden by default — enable it from the ☰ panel menu.
+- **🏃 WalkingPad** — Control a KingSmith WalkingPad C2 treadmill via Web Bluetooth (Chrome/Edge). Connect, start/stop, adjust speed with presets (1.0–3.0 mph) or a slider (0.5–3.75 mph, 0.25 increments, default 1.0 mph), and view live stats (speed, distance, time, steps, calories). Walk sessions auto-log to `data/walks.json` when the treadmill stops. Includes session history with insert-to-log and daily/weekly distance charts. Hidden by default — enable from the ☰ panel menu. Uses [`walkingpad-js`](https://github.com/Mwea/walkingpad-js).
 - **🚀 Auto-commit & Push** — Hourly auto-commit of your logs and TODOs to a git repo, with push to remote. The commit button provides inline visual feedback — it changes color and text to show success, "no changes", or error states for 3 seconds, then reverts. No layout shift.
 - **⚙️ Settings** — Ignore noisy repos in notifications. Adjust **font size** across the dashboard (Compact / Default / Comfortable / Large) — only text scales, layout stays stable. Font size is saved to `data/config.json` for persistence; layout and panel visibility preferences are saved in localStorage.
 - **▤ Layout modes** — Toggle between grid (2-column) and column (single-column) layouts. Hide individual panels and restore them from the ☰ menu. Preferences are saved in localStorage.
@@ -118,6 +119,7 @@
 - Space Grotesk + JetBrains Mono fonts
 - Octokit for GitHub API
 - react-resizable-panels for layout
+- `walkingpad-js` + `recharts` for WalkingPad treadmill control panel
 - `better-sqlite3` for reading the Copilot CLI session store
 
 ## Screenshots
