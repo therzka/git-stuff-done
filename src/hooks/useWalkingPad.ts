@@ -10,6 +10,10 @@ const KM_TO_MI = 0.621371;
 const MIN_SPEED_KMH = 0.5;
 const MAX_SPEED_KMH = 6.0;
 
+// FTMS service UUID for fitness equipment — used as a BLE filter so Chrome's
+// device picker shows fitness treadmills regardless of their advertised name.
+const FTMS_SERVICE_UUID = '00001826-0000-1000-8000-00805f9b34fb';
+
 interface Session {
   startedAt: string;
   maxSpeedMph: number;
@@ -56,7 +60,14 @@ export function useWalkingPad(): UseWalkingPadReturn {
   const getManager = useCallback(async (): Promise<WalkingPadBLEManager> => {
     if (sharedManager) return sharedManager;
     const lib = await loadLib();
-    sharedManager = lib.getWalkingPadBLE();
+    // Use service-based filter (FTMS UUID) instead of name prefixes so the
+    // Chrome BLE picker shows the device even if its name doesn't start with
+    // "Walking" or "KS". This matches any FTMS-compatible fitness treadmill.
+    const adapter = lib.createWalkingPadAdapter({
+      namePrefixes: [],
+      defaultFilters: [{ services: [FTMS_SERVICE_UUID] }],
+    });
+    sharedManager = lib.createManager(adapter);
     const throttled = lib.createThrottledSetSpeed(
       (kmh: number) => sharedManager!.setSpeed(kmh),
       { intervalMs: 300 },
