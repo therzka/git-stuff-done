@@ -66,11 +66,28 @@ export function useWalkingPad(): UseWalkingPadReturn {
     if (sharedManager) return sharedManager;
     log('Loading walkingpad-js library…');
     const lib = await loadLib();
+    log('Enabling walkingpad-js debug logging…');
+    lib.enableDebugLogging();
+
     log('Creating BLE adapter (name prefix: KS-BLC2, KS, Walking)…');
     // Filter by known WalkingPad name prefixes for a cleaner picker.
     // C2 advertises as "KS-BLC2"; other models use "Walking" or "KS".
+    // Include a broad optionalServices list so Chrome grants access to any
+    // service the device exposes (needed to call getPrimaryServices()).
     const adapter = lib.createWalkingPadAdapter({
       namePrefixes: ['KS-BLC2', 'KS', 'Walking'],
+      optionalServices: [
+        // FTMS (standard fitness treadmill — C2 should use this)
+        '00001826-0000-1000-8000-00805f9b34fb',
+        // Standard WalkingPad vendor services
+        '0000fe00-0000-1000-8000-00805f9b34fb',
+        '0000fff0-0000-1000-8000-00805f9b34fb',
+        // Additional vendor-specific ranges sometimes used by KingSmith
+        '0000fe01-0000-1000-8000-00805f9b34fb',
+        '0000fe02-0000-1000-8000-00805f9b34fb',
+        '0000fff1-0000-1000-8000-00805f9b34fb',
+        '0000fff2-0000-1000-8000-00805f9b34fb',
+      ],
     });
     sharedManager = lib.createManager(adapter);
     log('Manager created');
