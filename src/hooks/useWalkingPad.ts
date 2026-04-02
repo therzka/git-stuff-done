@@ -66,12 +66,11 @@ export function useWalkingPad(): UseWalkingPadReturn {
     if (sharedManager) return sharedManager;
     log('Loading walkingpad-js library…');
     const lib = await loadLib();
-    log('Creating BLE adapter (no filter — showing all devices)…');
-    // No filter: show all nearby BLE devices so user can pick their WalkingPad
-    // regardless of what name it advertises.
+    log('Creating BLE adapter (name prefix: KS-BLC2, KS, Walking)…');
+    // Filter by known WalkingPad name prefixes for a cleaner picker.
+    // C2 advertises as "KS-BLC2"; other models use "Walking" or "KS".
     const adapter = lib.createWalkingPadAdapter({
-      namePrefixes: [],
-      defaultFilters: [{ acceptAllDevices: true }],
+      namePrefixes: ['KS-BLC2', 'KS', 'Walking'],
     });
     sharedManager = lib.createManager(adapter);
     log('Manager created');
