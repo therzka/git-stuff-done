@@ -75,7 +75,7 @@ export function useWalkingPad(): UseWalkingPadReturn {
     // Chrome BLE picker shows the device even if its name doesn't start with
     // "Walking" or "KS". This matches any FTMS-compatible fitness treadmill.
     const adapter = lib.createWalkingPadAdapter({
-      namePrefixes: [],
+      namePrefixes: ['linker', 'Walking', 'KS'],
       defaultFilters: [{ services: [FTMS_SERVICE_UUID] }],
     });
     sharedManager = lib.createManager(adapter);
