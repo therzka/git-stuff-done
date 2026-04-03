@@ -184,7 +184,7 @@ export default function WalkingPad({
   const isConnected = pad.connectionState === 'connected';
   const isAutoMode = pad.protocol === 'standard' && pad.controlMode === 2;
   const roundedLiveSpeed = normalizeSpeed(pad.speedMph > 0 ? pad.speedMph : targetSpeed);
-  const canChangeSpeed = isConnected && pad.isRunning && !isAutoMode;
+  const canChangeSpeed = isConnected && !isAutoMode;
   const canDecrease = canChangeSpeed && roundedLiveSpeed > SPEED_MIN;
   const canIncrease = canChangeSpeed && roundedLiveSpeed < SPEED_MAX;
 
