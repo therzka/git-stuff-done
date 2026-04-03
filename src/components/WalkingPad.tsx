@@ -20,11 +20,6 @@ function fmtTime(seconds: number): string {
   return `${m}:${String(s).padStart(2, '0')}`;
 }
 
-function fmtDate(iso: string): string {
-  const d = new Date(iso);
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-}
-
 function fmtDateFull(iso: string): string {
   const d = new Date(iso);
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
@@ -35,12 +30,16 @@ function estimateCalories(steps: number): number {
   return Math.round(steps * 0.04);
 }
 
-// ── Speed Presets ───────────────────────────────────────────────────
-const SPEED_PRESETS = [1.0, 1.5, 2.0, 2.5, 3.0];
+// ── Speed constants ─────────────────────────────────────────────────
 const SPEED_MIN = 0.5;
 const SPEED_MAX = 3.75;
 const SPEED_STEP = 0.25;
-const SPEED_DEFAULT = 1.0;
+const SPEED_DEFAULT = 0.8;
+
+function normalizeSpeed(mph: number): number {
+  const clamped = Math.min(SPEED_MAX, Math.max(SPEED_MIN, mph));
+  return Math.round(clamped / SPEED_STEP) * SPEED_STEP;
+}
 
 // ── Tabs ────────────────────────────────────────────────────────────
 type TabId = 'controls' | 'history' | 'stats';
@@ -92,6 +91,7 @@ export default function WalkingPad({
   isDemo?: boolean;
   onInsert?: (text: string) => void;
 }) {
+  void onInsert;
   const pad = useWalkingPad();
   const [walks, setWalks] = useState<WalkSession[]>(_walksCache ?? []);
   const [walksLoading, setWalksLoading] = useState(_walksCache === null);
@@ -121,6 +121,10 @@ export default function WalkingPad({
     }
   }, [isDemo]);
 
+  // Stable ref so the auto-log effect doesn't need refreshWalks in its deps
+  const refreshWalksRef = useRef(refreshWalks);
+  useEffect(() => { refreshWalksRef.current = refreshWalks; }, [refreshWalks]);
+
   useVisibilityPolling(refreshWalks, 60_000);
   useEffect(() => { refreshWalks(_walksCache === null); }, [refreshWalks]);
   useEffect(() => () => { abortRef.current?.abort(); }, []);
@@ -129,6 +133,11 @@ export default function WalkingPad({
   useEffect(() => {
     if (logsOpen) logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [pad.logs, logsOpen]);
+
+  useEffect(() => {
+    if (pad.connectionState !== 'connected' || !pad.isRunning) return;
+    setTargetSpeed(normalizeSpeed(pad.speedMph));
+  }, [pad.connectionState, pad.isRunning, pad.speedMph]);
 
   // ── Auto-log session when treadmill stops ───────────────────────
   useEffect(() => {
@@ -150,16 +159,21 @@ export default function WalkingPad({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(session),
-      }).then(() => refreshWalks());
+      }).then(() => refreshWalksRef.current());
     }
-  }, [pad.isRunning, pad.currentSession, pad.timeSec, pad.distanceMi, pad.steps, refreshWalks]);
+  }, [pad.isRunning, pad.currentSession, pad.timeSec, pad.distanceMi, pad.steps]);
 
   // ── Speed control helpers ───────────────────────────────────────
-  const handleSpeedChange = useCallback((mph: number) => {
-    const clamped = Math.min(SPEED_MAX, Math.max(SPEED_MIN, Math.round(mph / SPEED_STEP) * SPEED_STEP));
-    setTargetSpeed(clamped);
-    pad.setSpeedMph(clamped);
-  }, [pad]);
+  const handleSpeedStep = useCallback(async (delta: number) => {
+    const base = pad.isRunning ? pad.speedMph : targetSpeed;
+    const next = normalizeSpeed(base + delta);
+    setTargetSpeed(next);
+    try {
+      await pad.setSpeedMph(next);
+    } catch {
+      // Error message is already surfaced by useWalkingPad.
+    }
+  }, [pad, targetSpeed]);
 
   // ── Connection indicator ────────────────────────────────────────
   const connColor =
@@ -168,6 +182,11 @@ export default function WalkingPad({
     'bg-zinc-400';
 
   const isConnected = pad.connectionState === 'connected';
+  const isAutoMode = pad.protocol === 'standard' && pad.controlMode === 2;
+  const roundedLiveSpeed = normalizeSpeed(pad.speedMph > 0 ? pad.speedMph : targetSpeed);
+  const canChangeSpeed = isConnected && pad.isRunning && !isAutoMode;
+  const canDecrease = canChangeSpeed && roundedLiveSpeed > SPEED_MIN;
+  const canIncrease = canChangeSpeed && roundedLiveSpeed < SPEED_MAX;
 
   // ── Render ──────────────────────────────────────────────────────
   return (
@@ -285,56 +304,54 @@ export default function WalkingPad({
               )}
             </div>
 
-            {/* Speed presets */}
-            <div className="flex justify-center gap-2">
-              {SPEED_PRESETS.map((s) => (
-                <button
-                  key={s}
-                  onClick={() => handleSpeedChange(s)}
-                  disabled={!isConnected}
-                  className={`rounded-full px-3 py-1 text-xs font-medium transition-colors disabled:opacity-40 ${
-                    Math.abs(targetSpeed - s) < 0.01
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-                  }`}
-                >
-                  {s}
-                </button>
-              ))}
-            </div>
-
-            {/* Speed slider with +/- */}
-            <div className="flex items-center gap-2">
+            {/* Speed control */}
+            <div className="flex items-center justify-center gap-6">
               <button
-                onClick={() => handleSpeedChange(targetSpeed - SPEED_STEP)}
-                disabled={!isConnected || targetSpeed <= SPEED_MIN}
-                className="rounded-lg p-1.5 text-muted-foreground hover:bg-accent hover:text-accent-foreground disabled:opacity-30"
+                onClick={() => handleSpeedStep(-SPEED_STEP)}
+                disabled={!canDecrease}
+                className="rounded-full bg-muted p-4 text-foreground transition-colors hover:bg-accent hover:text-accent-foreground disabled:opacity-30"
                 aria-label="Decrease speed"
               >
-                <Minus className="h-4 w-4" />
+                <Minus className="h-6 w-6" />
               </button>
-              <input
-                type="range"
-                min={SPEED_MIN}
-                max={SPEED_MAX}
-                step={SPEED_STEP}
-                value={targetSpeed}
-                onChange={(e) => handleSpeedChange(parseFloat(e.target.value))}
-                disabled={!isConnected}
-                className="flex-1 accent-primary h-2 disabled:opacity-40"
-              />
+              <div className="w-24 text-center">
+                <span className="text-4xl font-bold tabular-nums">{targetSpeed.toFixed(1)}</span>
+                <div className="text-xs text-muted-foreground mt-0.5">mph</div>
+              </div>
               <button
-                onClick={() => handleSpeedChange(targetSpeed + SPEED_STEP)}
-                disabled={!isConnected || targetSpeed >= SPEED_MAX}
-                className="rounded-lg p-1.5 text-muted-foreground hover:bg-accent hover:text-accent-foreground disabled:opacity-30"
+                onClick={() => handleSpeedStep(SPEED_STEP)}
+                disabled={!canIncrease}
+                className="rounded-full bg-muted p-4 text-foreground transition-colors hover:bg-accent hover:text-accent-foreground disabled:opacity-30"
                 aria-label="Increase speed"
               >
-                <Plus className="h-4 w-4" />
+                <Plus className="h-6 w-6" />
               </button>
-              <span className="w-14 text-right text-xs tabular-nums text-muted-foreground">
-                {targetSpeed.toFixed(2)} mph
-              </span>
             </div>
+
+            {isConnected && (
+              <p className="text-center text-[11px] text-muted-foreground">
+                Protocol: {pad.protocol ?? 'unknown'} · Mode:{' '}
+                {pad.controlMode === null
+                  ? 'n/a'
+                  : pad.controlMode === 0
+                    ? 'standby'
+                    : pad.controlMode === 1
+                      ? 'manual'
+                      : 'auto'}
+              </p>
+            )}
+
+            {isAutoMode && (
+              <p className="text-center text-xs text-amber-600 dark:text-amber-400">
+                Speed buttons are disabled in auto mode. Switch the treadmill to manual mode to set speed directly.
+              </p>
+            )}
+
+            {pad.speedCommandError && (
+              <p className="text-center text-xs text-destructive">
+                Speed command failed: {pad.speedCommandError}
+              </p>
+            )}
 
             {/* Not connected hint */}
             {!isConnected && !pad.error && (
@@ -385,23 +402,8 @@ export default function WalkingPad({
             {!walksLoading && walks.length > 0 && (
               <ul className="divide-y divide-border">
                 {walks.map((w) => (
-                  <li key={w.id} className="group px-4 py-3 transition-colors hover:bg-muted/50">
-                    <div className="flex items-start gap-2">
-                      {onInsert && (
-                        <button
-                          onClick={() =>
-                            onInsert(
-                              `🚶 Walk: ${w.distanceMi.toFixed(2)} mi, ${fmtTime(w.durationSec)}, ${w.steps} steps (${fmtDateFull(w.startedAt)})`,
-                            )
-                          }
-                          title="Insert into Work Log"
-                          className="mt-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-all rounded p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-4 h-4" aria-hidden="true">
-                            <path d="M2 4.5A1.5 1.5 0 0 1 3.5 3h9A1.5 1.5 0 0 1 14 4.5v5a1.5 1.5 0 0 1-1.5 1.5H9.56l.97.97a.75.75 0 1 1-1.06 1.06l-2.25-2.25a.75.75 0 0 1 0-1.06l2.25-2.25a.75.75 0 0 1 1.06 1.06l-.97.97h2.94a.25.25 0 0 0 .25-.25v-5a.25.25 0 0 0-.25-.25h-9a.25.25 0 0 0-.25.25v2a.75.75 0 0 1-1.5 0v-2z" />
-                          </svg>
-                        </button>
-                      )}
+                  <li key={w.id} className="px-4 py-3 transition-colors hover:bg-muted/50">
+                    <div className="flex items-start">
                       <div className="min-w-0 flex-1">
                         <div className="flex items-baseline justify-between">
                           <span className="text-sm font-medium text-foreground">

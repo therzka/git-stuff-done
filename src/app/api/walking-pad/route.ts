@@ -46,6 +46,12 @@ export async function POST(req: Request) {
   }
 
   const walks = await readWalks();
+
+  // Reject duplicates: same startedAt already exists
+  if (walks.some((w) => w.startedAt === body.startedAt)) {
+    return NextResponse.json({ error: "Duplicate session" }, { status: 409 });
+  }
+
   const session: WalkSession = {
     id: crypto.randomUUID(),
     startedAt: body.startedAt as string,

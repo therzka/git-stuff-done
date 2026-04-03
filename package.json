@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "postinstall": "node scripts/patch-walkingpad.mjs"
   },
   "dependencies": {
     "@github/copilot-sdk": "^0.1.25",

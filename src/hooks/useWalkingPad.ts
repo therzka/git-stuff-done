@@ -15,6 +15,10 @@ interface Session {
   maxSpeedMph: number;
 }
 
+type SessionProtocol = 'standard' | 'ftms' | null;
+type ControlMode = 0 | 1 | 2 | null;
+type SpeedCommandStatus = 'idle' | 'sending' | 'sent' | 'error';
+
 export interface UseWalkingPadReturn {
   connectionState: ConnectionState;
   connect: () => Promise<void>;
@@ -26,10 +30,16 @@ export interface UseWalkingPadReturn {
   timeSec: number;
   steps: number;
   isRunning: boolean;
+  controlMode: ControlMode;
+  protocol: SessionProtocol;
 
   start: () => Promise<void>;
   stop: () => Promise<void>;
-  setSpeedMph: (mph: number) => void;
+  setSpeedMph: (mph: number) => Promise<void>;
+  speedCommandStatus: SpeedCommandStatus;
+  speedCommandError: string | null;
+  lastRequestedSpeedMph: number | null;
+  lastRequestedSpeedKmh: number | null;
 
   currentSession: Session | null;
   logs: string[];
@@ -39,7 +49,11 @@ const loadLib = () => import('walkingpad-js');
 
 // Module-level ref so the manager survives remounts
 let sharedManager: WalkingPadBLEManager | null = null;
-let sharedThrottledSetSpeed: ((kmh: number) => void) | null = null;
+
+function toControlMode(mode: number): ControlMode {
+  if (mode === 0 || mode === 1 || mode === 2) return mode;
+  return null;
+}
 
 export function useWalkingPad(): UseWalkingPadReturn {
   const [connectionState, setConnectionState] = useState<ConnectionState>('disconnected');
@@ -49,7 +63,13 @@ export function useWalkingPad(): UseWalkingPadReturn {
   const [timeSec, setTimeSec] = useState(0);
   const [steps, setSteps] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
+  const [controlMode, setControlMode] = useState<ControlMode>(null);
+  const [protocol, setProtocol] = useState<SessionProtocol>(null);
   const [currentSession, setCurrentSession] = useState<Session | null>(null);
+  const [speedCommandStatus, setSpeedCommandStatus] = useState<SpeedCommandStatus>('idle');
+  const [speedCommandError, setSpeedCommandError] = useState<string | null>(null);
+  const [lastRequestedSpeedMph, setLastRequestedSpeedMph] = useState<number | null>(null);
+  const [lastRequestedSpeedKmh, setLastRequestedSpeedKmh] = useState<number | null>(null);
   const [logs, setLogs] = useState<string[]>([]);
 
   const prevIsRunning = useRef(false);
@@ -91,11 +111,6 @@ export function useWalkingPad(): UseWalkingPadReturn {
     });
     sharedManager = lib.createManager(adapter);
     log('Manager created');
-    const throttled = lib.createThrottledSetSpeed(
-      (kmh: number) => sharedManager!.setSpeed(kmh),
-      { intervalMs: 300 },
-    );
-    sharedThrottledSetSpeed = throttled;
     return sharedManager;
   }, [log]);
 
@@ -107,6 +122,7 @@ export function useWalkingPad(): UseWalkingPadReturn {
     setTimeSec(state.time);
     setSteps(state.steps);
     setIsRunning(state.isRunning);
+    setControlMode(toControlMode(Number(state.mode)));
 
     // Track max speed within current session
     if (state.isRunning && sessionRef.current) {
@@ -115,35 +131,41 @@ export function useWalkingPad(): UseWalkingPadReturn {
         setCurrentSession({ ...sessionRef.current });
       }
     }
+
+    const wasRunning = prevIsRunning.current;
+    prevIsRunning.current = state.isRunning;
+    if (!wasRunning && state.isRunning) {
+      const session: Session = { startedAt: new Date().toISOString(), maxSpeedMph: mph };
+      sessionRef.current = session;
+      setCurrentSession(session);
+      setSpeedCommandStatus('idle');
+      setSpeedCommandError(null);
+    } else if (wasRunning && !state.isRunning) {
+      // Keep currentSession for consumer auto-log, clear internal ref for next run.
+      sessionRef.current = null;
+      setSpeedCommandStatus('idle');
+    }
   }, []);
 
   const handleConnectionStateChange = useCallback(({ from, to }: { from: ConnectionState; to: ConnectionState }) => {
     log(`Connection: ${from} → ${to}`);
     setConnectionState(to);
-    if (to === 'connected') setError(null);
+    if (to === 'connected') {
+      setError(null);
+      setProtocol(sharedManager?.getSessionInfo()?.protocol ?? null);
+      return;
+    }
+
+    setProtocol(null);
+    setControlMode(null);
+    setSpeedCommandStatus('idle');
+    setSpeedCommandError(null);
   }, [log]);
 
   const handleError = useCallback((err: Error) => {
     log(`Error: ${err.message}`);
     setError(err.message);
   }, [log]);
-
-  // Session tracking: detect running transitions
-  useEffect(() => {
-    const wasRunning = prevIsRunning.current;
-    prevIsRunning.current = isRunning;
-
-    if (!wasRunning && isRunning) {
-      // Started a new session
-      const session: Session = { startedAt: new Date().toISOString(), maxSpeedMph: speedMph };
-      sessionRef.current = session;
-      setCurrentSession(session);
-    } else if (wasRunning && !isRunning) {
-      // Session ended — keep currentSession so the consumer can read & POST it,
-      // then clear our internal ref so the next run starts fresh
-      sessionRef.current = null;
-    }
-  }, [isRunning, speedMph]);
 
   // Attach event listeners on mount, attempt silent reconnect
   useEffect(() => {
@@ -168,6 +190,9 @@ export function useWalkingPad(): UseWalkingPadReturn {
           log('Attempting auto-reconnect to remembered device…');
           const ok = await pad.reconnect();
           log(ok ? 'Auto-reconnect successful' : 'No remembered device found');
+          if (ok) {
+            setProtocol(pad.getSessionInfo()?.protocol ?? null);
+          }
         } catch {
           log('Auto-reconnect skipped (no saved device)');
         }
@@ -195,6 +220,7 @@ export function useWalkingPad(): UseWalkingPadReturn {
       log('Opening BLE device picker…');
       const pad = await getManager();
       await pad.connect({ rememberDevice: true });
+      setProtocol(pad.getSessionInfo()?.protocol ?? null);
       log('Connected (device remembered for next time)');
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to connect';
@@ -208,6 +234,8 @@ export function useWalkingPad(): UseWalkingPadReturn {
       log('Disconnecting…');
       const pad = await getManager();
       await pad.disconnect();
+      setProtocol(null);
+      setControlMode(null);
       log('Disconnected');
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to disconnect';
@@ -242,10 +270,31 @@ export function useWalkingPad(): UseWalkingPadReturn {
     }
   }, [getManager, log]);
 
-  const setSpeedMph = useCallback((mph: number) => {
+  const setSpeedMph = useCallback(async (mph: number): Promise<void> => {
     const kmh = Math.min(MAX_SPEED_KMH, Math.max(MIN_SPEED_KMH, mph * MPH_TO_KMH));
-    sharedThrottledSetSpeed?.(kmh);
-  }, []);
+    const normalizedMph = kmh * KMH_TO_MPH;
+
+    setLastRequestedSpeedMph(normalizedMph);
+    setLastRequestedSpeedKmh(kmh);
+    setSpeedCommandStatus('sending');
+    setSpeedCommandError(null);
+
+    try {
+      const pad = await getManager();
+      await pad.setSpeed(kmh);
+      setSpeedCommandStatus('sent');
+      setError(null);
+      _setSpeedMph(normalizedMph);
+      log(`Set speed: ${normalizedMph.toFixed(2)} mph (${kmh.toFixed(2)} km/h)`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to set speed';
+      setSpeedCommandStatus('error');
+      setSpeedCommandError(msg);
+      setError(msg);
+      log(`Set speed failed: ${msg}`);
+      throw err instanceof Error ? err : new Error(msg);
+    }
+  }, [getManager, log]);
 
   return {
     connectionState,
@@ -257,9 +306,15 @@ export function useWalkingPad(): UseWalkingPadReturn {
     timeSec,
     steps,
     isRunning,
+    controlMode,
+    protocol,
     start,
     stop,
     setSpeedMph,
+    speedCommandStatus,
+    speedCommandError,
+    lastRequestedSpeedMph,
+    lastRequestedSpeedKmh,
     currentSession,
     logs,
   };
