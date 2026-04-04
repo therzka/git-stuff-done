@@ -582,9 +582,10 @@ export default function Dashboard() {
     </div>
   );
 
-  function panelCard(id: PanelId, children: React.ReactNode, dragHandleProps?: React.HTMLAttributes<HTMLDivElement>) {
+  function panelCard(id: PanelId, children: React.ReactNode, handleListeners?: React.HTMLAttributes<HTMLDivElement>) {
     return (
       <div className="group/card relative h-full">
+        {/* Hide button */}
         <button
           onClick={() => hidePanel(id)}
           className="absolute -right-1 -top-1 z-10 rounded-full border border-border bg-card p-0.5 text-muted-foreground opacity-0 shadow-sm transition hover:bg-muted hover:text-foreground group-hover/card:opacity-100"
@@ -595,24 +596,29 @@ export default function Dashboard() {
             <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
           </svg>
         </button>
-        <div
-          className="h-full overflow-hidden rounded-2xl border border-border bg-card panel-enter panel-shadow transition-colors"
-          {...dragHandleProps}
-        >
+        <div className="h-full overflow-hidden rounded-2xl border border-border bg-card panel-enter panel-shadow transition-colors">
+          {/* Drag handle — covers only the title bar height (~44px), shows grab cursor */}
+          {handleListeners && (
+            <div
+              {...handleListeners}
+              className="absolute inset-x-0 top-0 h-11 z-[5] cursor-grab active:cursor-grabbing"
+              aria-label={`Drag ${PANEL_LABELS[id]}`}
+            />
+          )}
           {children}
         </div>
       </div>
     );
   }
 
-  function panelContent(id: PanelId, dragHandleProps?: React.HTMLAttributes<HTMLDivElement>) {
+  function panelContent(id: PanelId, handleListeners?: React.HTMLAttributes<HTMLDivElement>) {
     switch (id) {
-      case 'log': return panelCard(id, <RawWorkLog date={date} isDemo={isDemo} onRegisterInsert={(fn) => { insertAtCursorRef.current = fn; }} />, dragHandleProps);
-      case 'todos': return panelCard(id, <TodoList date={date} isDemo={isDemo} />, dragHandleProps);
-      case 'prs': return panelCard(id, <MyPRs isDemo={isDemo} onInsert={(text) => insertAtCursorRef.current?.(text)} />, dragHandleProps);
-      case 'issues': return panelCard(id, <MyIssues isDemo={isDemo} onInsert={(text) => insertAtCursorRef.current?.(text)} />, dragHandleProps);
-      case 'notifs': return panelCard(id, <GitHubNotifications refreshTrigger={notifsKey} isDemo={isDemo} onInsert={(text) => insertAtCursorRef.current?.(text)} />, dragHandleProps);
-      case 'sessions': return panelCard(id, <AgentSessions isDemo={isDemo} onInsert={(text) => insertAtCursorRef.current?.(text)} />, dragHandleProps);
+      case 'log': return panelCard(id, <RawWorkLog date={date} isDemo={isDemo} onRegisterInsert={(fn) => { insertAtCursorRef.current = fn; }} />, handleListeners);
+      case 'todos': return panelCard(id, <TodoList date={date} isDemo={isDemo} />, handleListeners);
+      case 'prs': return panelCard(id, <MyPRs isDemo={isDemo} onInsert={(text) => insertAtCursorRef.current?.(text)} />, handleListeners);
+      case 'issues': return panelCard(id, <MyIssues isDemo={isDemo} onInsert={(text) => insertAtCursorRef.current?.(text)} />, handleListeners);
+      case 'notifs': return panelCard(id, <GitHubNotifications refreshTrigger={notifsKey} isDemo={isDemo} onInsert={(text) => insertAtCursorRef.current?.(text)} />, handleListeners);
+      case 'sessions': return panelCard(id, <AgentSessions isDemo={isDemo} onInsert={(text) => insertAtCursorRef.current?.(text)} />, handleListeners);
     }
   }
 
@@ -754,8 +760,6 @@ export default function Dashboard() {
 }
 
 // ── Sortable panel wrapper ────────────────────────────────────────────────────
-// Wraps each panel in a dnd-kit sortable context and provides dragHandleProps
-// (spread onto the panel card's outer div) so the whole card surface is draggable.
 function SortablePanelWrapper({
   id,
   isDragging,
@@ -763,7 +767,7 @@ function SortablePanelWrapper({
 }: {
   id: string;
   isDragging: boolean;
-  children: (dragHandleProps: React.HTMLAttributes<HTMLDivElement>) => React.ReactNode;
+  children: (handleListeners: React.HTMLAttributes<HTMLDivElement>) => React.ReactNode;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
 
@@ -774,14 +778,12 @@ function SortablePanelWrapper({
     opacity: isDragging ? 0.35 : 1,
   };
 
-  const dragHandleProps: React.HTMLAttributes<HTMLDivElement> = {
-    ...attributes,
-    ...listeners,
-  };
+  // Only listeners go on the grip handle; attributes (aria) go on the container.
+  const handleListeners: React.HTMLAttributes<HTMLDivElement> = listeners ?? {};
 
   return (
-    <div ref={setNodeRef} style={style}>
-      {children(dragHandleProps)}
+    <div ref={setNodeRef} style={style} {...attributes}>
+      {children(handleListeners)}
     </div>
   );
 }
