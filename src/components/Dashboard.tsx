@@ -186,15 +186,20 @@ export default function Dashboard() {
     const activeId = active.id as PanelId;
     const overId = over.id as PanelId;
 
+    // Guard: both IDs must be known panels
+    if (!ALL_PANELS.includes(activeId) || !ALL_PANELS.includes(overId)) return;
+
+    // Update order
     setPanelOrder((prev) => {
       const oldIndex = prev.indexOf(activeId);
       const newIndex = prev.indexOf(overId);
+      if (oldIndex === -1 || newIndex === -1) return prev;
       const next = arrayMove(prev, oldIndex, newIndex);
       savePanelOrder(next);
       return next;
     });
 
-    // In grid mode: if dropped onto a panel in a different column, move sides
+    // In grid mode: if dropped onto a panel in a different column, move it there
     if (layout === 'grid' && panelSide[activeId] !== panelSide[overId]) {
       setPanelSide((prev) => {
         const next = { ...prev, [activeId]: prev[overId] };
@@ -544,6 +549,23 @@ export default function Dashboard() {
               ))}
             </div>
           )}
+          {/* Layout Reset */}
+          <div className="mt-4 pt-4 border-t border-border">
+            <h3 className="text-sm font-semibold text-foreground mb-2">Panel Layout</h3>
+            <button
+              onClick={() => {
+                const defaultOrder = [...ALL_PANELS];
+                const defaultSides = { ...DEFAULT_PANEL_SIDE };
+                setPanelOrder(defaultOrder);
+                setPanelSide(defaultSides);
+                savePanelOrder(defaultOrder);
+                savePanelSide(defaultSides);
+              }}
+              className="rounded-lg px-3 py-1.5 text-xs font-medium bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground transition"
+            >
+              Reset panel positions
+            </button>
+          </div>
           {/* Font Size */}
           <div className="mt-4 pt-4 border-t border-border">
             <h3 className="text-sm font-semibold text-foreground mb-2">Font Size</h3>
@@ -667,80 +689,77 @@ export default function Dashboard() {
     const leftPanels = visible.filter((id) => panelSide[id] === 'left');
     const rightPanels = visible.filter((id) => panelSide[id] === 'right');
 
-    function renderGridColumn(panels: PanelId[], side: 'left' | 'right') {
+    function renderGridColumn(panels: PanelId[]) {
       if (panels.length === 0) return null;
-      const inner = panels.length === 1 ? (
-        <SortablePanelWrapper id={panels[0]} isDragging={activeDragId === panels[0]}>
-          {(dragHandleProps) => panelContent(panels[0], dragHandleProps)}
-        </SortablePanelWrapper>
-      ) : (
+      if (panels.length === 1) {
+        return (
+          <SortablePanelWrapper id={panels[0]} isDragging={activeDragId === panels[0]}>
+            {(handleListeners) => panelContent(panels[0], handleListeners)}
+          </SortablePanelWrapper>
+        );
+      }
+      return (
         <PanelGroup orientation="vertical">
           {panels.map((id, i) => (
             <Fragment key={id}>
               {i > 0 && <PanelResizeHandle className="my-1 h-1.5 rounded-full transition hover:bg-accent active:bg-primary/50" />}
               <Panel defaultSize={100 / panels.length} minSize={15}>
                 <SortablePanelWrapper id={id} isDragging={activeDragId === id}>
-                  {(dragHandleProps) => panelContent(id, dragHandleProps)}
+                  {(handleListeners) => panelContent(id, handleListeners)}
                 </SortablePanelWrapper>
               </Panel>
             </Fragment>
           ))}
         </PanelGroup>
       );
-      return (
-        <SortableContext key={side} items={panels} strategy={verticalListSortingStrategy}>
-          {inner}
-        </SortableContext>
-      );
     }
 
-    // If one side is empty, show only the other in full width
-    if (leftPanels.length === 0 && rightPanels.length > 0) {
-      return (
-        <DndContext sensors={dndSensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-          <PanelGroup key={`grid-r-${rightPanels.join(',')}`} orientation="vertical" className="min-h-0 flex-1 p-3">
-            {rightPanels.map((id, i) => (
-              <Fragment key={id}>
-                {i > 0 && <PanelResizeHandle className="my-1 h-1.5 rounded-full transition hover:bg-accent active:bg-primary/50" />}
-                <Panel defaultSize={100 / rightPanels.length} minSize={15}>
-                  {renderGridColumn(rightPanels, 'right')}
-                </Panel>
-              </Fragment>
-            ))}
-          </PanelGroup>
-          {renderDragOverlay()}
-        </DndContext>
-      );
-    }
-    if (rightPanels.length === 0 && leftPanels.length > 0) {
-      return (
-        <DndContext sensors={dndSensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-          <PanelGroup key={`grid-l-${leftPanels.join(',')}`} orientation="vertical" className="min-h-0 flex-1 p-3">
-            {leftPanels.map((id, i) => (
-              <Fragment key={id}>
-                {i > 0 && <PanelResizeHandle className="my-1 h-1.5 rounded-full transition hover:bg-accent active:bg-primary/50" />}
-                <Panel defaultSize={100 / leftPanels.length} minSize={15}>
-                  {renderGridColumn(leftPanels, 'left')}
-                </Panel>
-              </Fragment>
-            ))}
-          </PanelGroup>
-          {renderDragOverlay()}
-        </DndContext>
-      );
-    }
+    // Single SortableContext with ALL visible panels so cross-column drag works.
+    // Column assignment is purely visual (panelSide); dnd-kit doesn't need to
+    // know about columns — it just needs to find the closest drop target.
+    const gridContent = leftPanels.length === 0 ? (
+      <PanelGroup key={`grid-r-${rightPanels.join(',')}`} orientation="vertical" className="min-h-0 flex-1 p-3">
+        {rightPanels.map((id, i) => (
+          <Fragment key={id}>
+            {i > 0 && <PanelResizeHandle className="my-1 h-1.5 rounded-full transition hover:bg-accent active:bg-primary/50" />}
+            <Panel defaultSize={100 / rightPanels.length} minSize={15}>
+              <SortablePanelWrapper id={id} isDragging={activeDragId === id}>
+                {(handleListeners) => panelContent(id, handleListeners)}
+              </SortablePanelWrapper>
+            </Panel>
+          </Fragment>
+        ))}
+      </PanelGroup>
+    ) : rightPanels.length === 0 ? (
+      <PanelGroup key={`grid-l-${leftPanels.join(',')}`} orientation="vertical" className="min-h-0 flex-1 p-3">
+        {leftPanels.map((id, i) => (
+          <Fragment key={id}>
+            {i > 0 && <PanelResizeHandle className="my-1 h-1.5 rounded-full transition hover:bg-accent active:bg-primary/50" />}
+            <Panel defaultSize={100 / leftPanels.length} minSize={15}>
+              <SortablePanelWrapper id={id} isDragging={activeDragId === id}>
+                {(handleListeners) => panelContent(id, handleListeners)}
+              </SortablePanelWrapper>
+            </Panel>
+          </Fragment>
+        ))}
+      </PanelGroup>
+    ) : (
+      <PanelGroup key={`grid-${visible.join(',')}`} orientation="horizontal" className="min-h-0 flex-1 p-3">
+        <Panel defaultSize={55} minSize={30}>
+          {renderGridColumn(leftPanels)}
+        </Panel>
+        <PanelResizeHandle className="mx-1 w-1.5 rounded-full transition hover:bg-accent active:bg-primary/50" />
+        <Panel defaultSize={45} minSize={25}>
+          {renderGridColumn(rightPanels)}
+        </Panel>
+      </PanelGroup>
+    );
 
     return (
       <DndContext sensors={dndSensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-        <PanelGroup key={`grid-${visible.join(',')}`} orientation="horizontal" className="min-h-0 flex-1 p-3">
-          <Panel defaultSize={55} minSize={30}>
-            {renderGridColumn(leftPanels, 'left')}
-          </Panel>
-          <PanelResizeHandle className="mx-1 w-1.5 rounded-full transition hover:bg-accent active:bg-primary/50" />
-          <Panel defaultSize={45} minSize={25}>
-            {renderGridColumn(rightPanels, 'right')}
-          </Panel>
-        </PanelGroup>
+        <SortableContext items={visible} strategy={verticalListSortingStrategy}>
+          {gridContent}
+        </SortableContext>
         {renderDragOverlay()}
       </DndContext>
     );
