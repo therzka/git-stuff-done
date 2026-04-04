@@ -22,7 +22,7 @@ import {
   arrayMove,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Upload, Moon, Sun, BarChart2, Search, Settings, LayoutGrid, AlignJustify, Menu, X, ChevronLeft, ChevronRight, FileText, Check, Minus, Sparkles } from 'lucide-react';
+import { Upload, Moon, Sun, BarChart2, Search, Settings, LayoutGrid, LayoutList, Menu, X, ChevronLeft, ChevronRight, FileText, Check, Minus, Sparkles } from 'lucide-react';
 import RawWorkLog from './RawWorkLog';
 import TodoList from './TodoList';
 import MyPRs from './MyPRs';
@@ -434,7 +434,7 @@ export default function Dashboard() {
             aria-label="Toggle layout"
             title={layout === 'grid' ? 'Switch to column layout' : 'Switch to grid layout'}
           >
-            {layout === 'grid' ? <LayoutGrid className="h-4 w-4" aria-hidden="true" /> : <AlignJustify className="h-4 w-4" aria-hidden="true" />}
+            {layout === 'grid' ? <LayoutGrid className="h-4 w-4" aria-hidden="true" /> : <LayoutList className="h-4 w-4" aria-hidden="true" />}
           </button>
           <button
             ref={panelMenuBtnRef}
