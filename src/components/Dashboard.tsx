@@ -777,7 +777,6 @@ function SortablePanelWrapper({
   const dragHandleProps: React.HTMLAttributes<HTMLDivElement> = {
     ...attributes,
     ...listeners,
-    style: { cursor: isDragging ? 'grabbing' : 'grab' },
   };
 
   return (
