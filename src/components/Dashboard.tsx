@@ -15,7 +15,7 @@ import AgentSessions from './AgentSessions';
 import AiModal from './AiModal';
 import SummariesModal from './SummariesModal';
 import CalendarPicker from './CalendarPicker';
-import { GITHUB_ORG } from '@/lib/constants';
+import { GITHUB_ORGS } from '@/lib/constants';
 import { DEMO_CONFIG } from '@/lib/demo';
 
 type PanelId = 'log' | 'todos' | 'prs' | 'issues' | 'notifs' | 'sessions';
@@ -428,7 +428,7 @@ export default function Dashboard() {
       {showSettings && (
         <div className="border-b border-border bg-card px-6 py-4">
           <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-semibold text-foreground">Ignored Repos <span className="text-muted-foreground font-normal">(in {GITHUB_ORG} org)</span></h3>
+            <h3 className="text-sm font-semibold text-foreground">Ignored Repos {GITHUB_ORGS.length > 0 && <span className="text-muted-foreground font-normal">({GITHUB_ORGS.join(', ')})</span>}</h3>
             <button onClick={() => setShowSettings(false)} className="text-xs text-muted-foreground hover:text-foreground">Close</button>
           </div>
           <form onSubmit={(e) => { e.preventDefault(); addIgnoredRepo(); }} className="flex gap-2 mb-2">
@@ -436,7 +436,7 @@ export default function Dashboard() {
               type="text"
               value={repoInput}
               onChange={(e) => setRepoInput(e.target.value)}
-              placeholder="repo-name"
+              placeholder="org/repo-name"
               className="flex-1 rounded-xl border border-input bg-muted/50 px-3 py-1.5 text-sm text-foreground placeholder-muted-foreground outline-none focus:border-primary focus:ring-2 focus:ring-ring/20"
             />
             <button type="submit" className="rounded-xl bg-accent px-3 py-1.5 text-sm font-medium text-accent-foreground transition hover:opacity-80">Add</button>

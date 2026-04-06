@@ -29,7 +29,7 @@
 - **🔔 Notifications** — Filtered GitHub notifications: reviews requested, mentions, assignments, and activity on your issues/PRs. Click the insert button to paste a link at the cursor. Dismiss individual notifications with the X button (reappear on reload).
 - **🤖 Agent Sessions** — Browse recent Copilot CLI sessions pulled from `~/.copilot/session-store.db`. Sessions are grouped by date (**Today / Yesterday / This Week / Older**) and each entry shows the session summary, turn count, time elapsed, and any linked PR or commit badges. Hover any session to reveal an insert button that pastes a formatted markdown link into your Work Log. Hidden by default — enable it from the ☰ panel menu.
 - **🚀 Auto-commit & Push** — Hourly auto-commit of your logs and TODOs to a git repo, with push to remote. The commit button provides inline visual feedback — it changes color and text to show success, "no changes", or error states for 3 seconds, then reverts. No layout shift.
-- **⚙️ Settings** — Ignore noisy repos in notifications. Adjust **font size** across the dashboard (Compact / Default / Comfortable / Large) — only text scales, layout stays stable. Font size is saved to `data/config.json` for persistence; layout and panel visibility preferences are saved in localStorage.
+- **⚙️ Settings** — Ignore noisy repos (using `org/repo` format) in notifications, PRs, and issues. Supports multiple GitHub orgs via comma-separated `GITHUB_ORG` env var. Adjust **font size** across the dashboard (Compact / Default / Comfortable / Large) — only text scales, layout stays stable. Font size is saved to `data/config.json` for persistence; layout and panel visibility preferences are saved in localStorage.
 - **▤ Layout modes** — Toggle between grid (2-column) and column (single-column) layouts. Hide individual panels and restore them from the ☰ menu. Preferences are saved in localStorage.
 - **🌗 Dark Mode** — First-class support for both light and dark themes.
 
@@ -73,7 +73,7 @@
 
    Edit `.env.local`:
    - `GITHUB_READ_TOKEN` — the PAT from step 2
-   - `GITHUB_ORG` — your GitHub org name (filters notifications, PRs, links)
+   - `GITHUB_ORG` — your GitHub org name(s), comma-separated for multiple (e.g. `my-org` or `org1,org2`)
    - `GIT_STUFF_DONE_DATA_DIR` — (recommended) path to a separate git repo for storing logs/TODOs
 
 4. **Set up a separate repo for your logs (recommended):**
@@ -98,7 +98,7 @@
 
 | Variable                  | Default                           | Description                                                                                                                                   |
 | ------------------------- | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GITHUB_ORG`              | _(none)_                          | GitHub org to filter notifications, PRs, and links                                                                                            |
+| `GITHUB_ORG`              | _(none)_                          | GitHub org(s) to filter notifications, PRs, and links. Comma-separated for multiple orgs (e.g. `org1,org2`)                                   |
 | `GITHUB_READ_TOKEN`       | _(falls back to `gh auth token`)_ | GitHub token ([create one](https://github.com/settings/personal-access-tokens/new) with Issues, PRs, Notifications, Actions, Contents — write access needed for Copilot assignment) |
 | `GIT_STUFF_DONE_DATA_DIR` | `./` (app dir)                    | Path to a git repo where `logs/` and `data/` will be stored                                                                                   |
 
