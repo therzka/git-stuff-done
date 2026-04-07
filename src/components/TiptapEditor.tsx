@@ -5,7 +5,6 @@ import { Extension } from "@tiptap/core";
 import Link from '@tiptap/extension-link';
 import StarterKit from "@tiptap/starter-kit";
 import { ListItem } from "@tiptap/extension-list-item";
-import Link from "@tiptap/extension-link";
 import Placeholder from "@tiptap/extension-placeholder";
 import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
@@ -381,6 +380,8 @@ const TiptapEditor = forwardRef<TiptapEditorHandle, TiptapEditorProps>(
           name: 'imageUpload',
           addProseMirrorPlugins() {
             return [createImageUploadPlugin(uploadRef, tiptapRef)];
+          },
+        }),
         CustomMention.configure({
           HTMLAttributes: { class: "mention-node" },
           renderText({ node }) {
