@@ -2,6 +2,7 @@
 
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
+import { ListItem } from '@tiptap/extension-list-item';
 import Link from '@tiptap/extension-link';
 import { Markdown } from 'tiptap-markdown';
 import { useEffect } from 'react';
@@ -16,7 +17,8 @@ export default function MarkdownViewer({ content, className }: MarkdownViewerPro
     immediatelyRender: false,
     editable: false,
     extensions: [
-      StarterKit,
+      StarterKit.configure({ listItem: false }),
+      ListItem.extend({ content: '(paragraph | codeBlock) block*' }),
       Link.configure({
         openOnClick: true,
         autolink: true,

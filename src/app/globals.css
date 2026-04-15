@@ -218,6 +218,10 @@ pre {
   margin-bottom: 0;
 }
 
+.tiptap-editor .tiptap li pre {
+  margin: 0.25rem 0;
+}
+
 .tiptap-editor .tiptap a {
   color: var(--accent-foreground);
   text-decoration: underline;
@@ -315,6 +319,58 @@ pre {
 
 .tiptap-editor .tiptap em {
   font-style: italic;
+}
+
+/* Inline image thumbnails */
+.tiptap-editor .tiptap .inline-image-node {
+  margin: 0.5rem 0;
+}
+
+.tiptap-editor .tiptap .inline-image-thumbnail {
+  max-height: 200px;
+  max-width: 100%;
+  width: auto;
+  height: auto;
+  border-radius: 0.375rem;
+  border: 1px solid var(--color-border);
+  cursor: pointer;
+  object-fit: contain;
+  transition: opacity 0.15s;
+}
+
+.tiptap-editor .tiptap .inline-image-thumbnail:hover {
+  opacity: 0.75;
+}
+
+/* Upload placeholder spinner card */
+.tiptap-editor .tiptap .upload-placeholder {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 0.875rem;
+  border-radius: 0.375rem;
+  border: 1px dashed var(--color-border);
+  background: var(--color-muted);
+  color: var(--color-muted-foreground);
+  font-size: 0.8125rem;
+  max-width: 200px;
+}
+
+/* Drop cursor indicator */
+.tiptap-drop-cursor {
+  color: var(--color-primary);
+}
+
+/* Images in the read-only markdown viewer */
+.markdown-viewer .tiptap img {
+  max-height: 200px;
+  max-width: 100%;
+  width: auto;
+  height: auto;
+  border-radius: 0.375rem;
+  border: 1px solid var(--color-border);
+  object-fit: contain;
+  margin: 0.5rem 0;
 }
 
 /* @mention nodes in the editor */
@@ -504,6 +560,10 @@ select:focus-visible {
 
 .markdown-viewer .tiptap li p {
   margin-bottom: 0;
+}
+
+.markdown-viewer .tiptap li pre {
+  margin: 0.25rem 0;
 }
 
 .markdown-viewer .tiptap a {

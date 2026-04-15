@@ -5,7 +5,24 @@ import { createPortal } from 'react-dom';
 import { useTheme } from 'next-themes';
 import { useSearchParams } from 'next/navigation';
 import { Panel, Group as PanelGroup, Separator as PanelResizeHandle } from 'react-resizable-panels';
-import { Upload, Moon, Sun, BarChart2, Search, Settings, LayoutGrid, AlignJustify, Menu, X, ChevronLeft, ChevronRight, FileText, Check, Minus, Sparkles } from 'lucide-react';
+import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  closestCenter,
+  type DragEndEvent,
+  type DragOverEvent,
+  type DragStartEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+  arrayMove,
+} from '@dnd-kit/sortable';
+import { Upload, Moon, Sun, BarChart2, Search, Settings, LayoutGrid, LayoutList, Menu, X, ChevronLeft, ChevronRight, FileText, Check, Minus, Sparkles } from 'lucide-react';
 import RawWorkLog from './RawWorkLog';
 import TodoList from './TodoList';
 import MyPRs from './MyPRs';
@@ -59,6 +76,42 @@ function loadVisiblePanels(): Set<PanelId> {
   return new Set(DEFAULT_PANELS);
 }
 
+const DEFAULT_PANEL_SIDE: Record<PanelId, 'left' | 'right'> = {
+  log: 'left', todos: 'left',
+  prs: 'right', issues: 'right', notifs: 'right', sessions: 'right',
+};
+
+function loadPanelOrder(): PanelId[] {
+  if (typeof window === 'undefined') return [...ALL_PANELS];
+  try {
+    const stored = localStorage.getItem('gsd-panel-order');
+    if (stored) {
+      const parsed = JSON.parse(stored) as PanelId[];
+      // Ensure all panels are present (handles new panels added later)
+      const missing = ALL_PANELS.filter((id) => !parsed.includes(id));
+      return [...parsed, ...missing];
+    }
+  } catch { /* ignore */ }
+  return [...ALL_PANELS];
+}
+
+function loadPanelSide(): Record<PanelId, 'left' | 'right'> {
+  if (typeof window === 'undefined') return { ...DEFAULT_PANEL_SIDE };
+  try {
+    const stored = localStorage.getItem('gsd-panel-sides');
+    if (stored) return { ...DEFAULT_PANEL_SIDE, ...JSON.parse(stored) };
+  } catch { /* ignore */ }
+  return { ...DEFAULT_PANEL_SIDE };
+}
+
+function savePanelOrder(order: PanelId[]) {
+  localStorage.setItem('gsd-panel-order', JSON.stringify(order));
+}
+
+function savePanelSide(sides: Record<PanelId, 'left' | 'right'>) {
+  localStorage.setItem('gsd-panel-sides', JSON.stringify(sides));
+}
+
 function todayISO() {
   return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
 }
@@ -88,6 +141,18 @@ export default function Dashboard() {
   const panelMenuRef = useRef<HTMLDivElement>(null);
   const [panelMenuPos, setPanelMenuPos] = useState({ top: 0, left: 0 });
 
+  // Drag-and-drop order + side
+  const [panelOrder, setPanelOrder] = useState<PanelId[]>(loadPanelOrder);
+  const [panelSide, setPanelSide] = useState<Record<PanelId, 'left' | 'right'>>(loadPanelSide);
+  const [activeDragId, setActiveDragId] = useState<PanelId | null>(null);
+  // Live state during drag — reverts on cancel, committed on drop
+  const [livePanelOrder, setLivePanelOrder] = useState<PanelId[] | null>(null);
+  const [livePanelSide, setLivePanelSide] = useState<Record<PanelId, 'left' | 'right'> | null>(null);
+
+  const dndSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+  );
+
   function toggleLayout() {
     const next: LayoutMode = layout === 'grid' ? 'column' : 'grid';
     setLayout(next);
@@ -111,6 +176,63 @@ export default function Dashboard() {
       localStorage.setItem('gsd-visible-panels', JSON.stringify([...next]));
       return next;
     });
+  }
+
+  function handleDragStart({ active }: DragStartEvent) {
+    setActiveDragId(active.id as PanelId);
+    setLivePanelOrder([...panelOrder]);
+    setLivePanelSide({ ...panelSide });
+  }
+
+  function handleDragOver({ active, over }: DragOverEvent) {
+    if (!over || active.id === over.id) return;
+    const activeId = active.id as PanelId;
+    const overId = over.id as PanelId;
+    if (!ALL_PANELS.includes(activeId) || !ALL_PANELS.includes(overId)) return;
+
+    setLivePanelOrder((prev) => {
+      const order = prev ?? panelOrder;
+      const oldIndex = order.indexOf(activeId);
+      const newIndex = order.indexOf(overId);
+      if (oldIndex === -1 || newIndex === -1) return prev;
+      return arrayMove(order, oldIndex, newIndex);
+    });
+
+    // Cross-column: update live side assignment
+    if (layout === 'grid') {
+      setLivePanelSide((prev) => {
+        const sides = prev ?? panelSide;
+        if (sides[activeId] === sides[overId]) return prev;
+        return { ...sides, [activeId]: sides[overId] };
+      });
+    }
+  }
+
+  function handleDragEnd(_event: DragEndEvent) {
+    const finalOrder = livePanelOrder ?? panelOrder;
+    const finalSide = livePanelSide ?? panelSide;
+
+    setActiveDragId(null);
+    setLivePanelOrder(null);
+    setLivePanelSide(null);
+
+    // Commit if anything changed (don't use over.id — with live reorder the
+    // active panel moves under the cursor so over.id === active.id at drop time)
+    const orderChanged = finalOrder.some((id, i) => id !== panelOrder[i]);
+    const sideChanged = ALL_PANELS.some((id) => finalSide[id] !== panelSide[id]);
+    if (!orderChanged && !sideChanged) return;
+
+    setPanelOrder(finalOrder);
+    savePanelOrder(finalOrder);
+    setPanelSide(finalSide);
+    savePanelSide(finalSide);
+  }
+
+  function handleDragCancel() {
+    // Revert to original order
+    setActiveDragId(null);
+    setLivePanelOrder(null);
+    setLivePanelSide(null);
   }
 
   // Auto-switch to column layout on narrow screens
@@ -338,7 +460,7 @@ export default function Dashboard() {
             aria-label="Toggle layout"
             title={layout === 'grid' ? 'Switch to column layout' : 'Switch to grid layout'}
           >
-            {layout === 'grid' ? <LayoutGrid className="h-4 w-4" aria-hidden="true" /> : <AlignJustify className="h-4 w-4" aria-hidden="true" />}
+            {layout === 'grid' ? <LayoutGrid className="h-4 w-4" aria-hidden="true" /> : <LayoutList className="h-4 w-4" aria-hidden="true" />}
           </button>
           <button
             ref={panelMenuBtnRef}
@@ -389,7 +511,7 @@ export default function Dashboard() {
             <div
               ref={aiMenuRef}
               style={{ position: 'fixed', top: aiMenuPos.top, left: aiMenuPos.left, transform: 'translateX(-100%)', zIndex: 9999 }}
-              className="w-52 rounded-xl border border-border bg-popover shadow-xl p-2 select-none"
+              className="min-w-52 whitespace-nowrap rounded-xl border border-border bg-popover shadow-xl p-2 select-none"
             >
               <button
                 onClick={() => { setAiModalTab('search'); setAiMenuOpen(false); }}
@@ -453,6 +575,23 @@ export default function Dashboard() {
               ))}
             </div>
           )}
+          {/* Layout Reset */}
+          <div className="mt-4 pt-4 border-t border-border">
+            <h3 className="text-sm font-semibold text-foreground mb-2">Panel Layout</h3>
+            <button
+              onClick={() => {
+                const defaultOrder = [...ALL_PANELS];
+                const defaultSides = { ...DEFAULT_PANEL_SIDE };
+                setPanelOrder(defaultOrder);
+                setPanelSide(defaultSides);
+                savePanelOrder(defaultOrder);
+                savePanelSide(defaultSides);
+              }}
+              className="rounded-lg px-3 py-1.5 text-xs font-medium bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground transition"
+            >
+              Reset panel positions
+            </button>
+          </div>
           {/* Font Size */}
           <div className="mt-4 pt-4 border-t border-border">
             <h3 className="text-sm font-semibold text-foreground mb-2">Font Size</h3>
@@ -491,9 +630,10 @@ export default function Dashboard() {
     </div>
   );
 
-  function panelCard(id: PanelId, children: React.ReactNode) {
+  function panelCard(id: PanelId, children: React.ReactNode, handleListeners?: React.HTMLAttributes<HTMLDivElement>) {
     return (
       <div className="group/card relative h-full">
+        {/* Hide button */}
         <button
           onClick={() => hidePanel(id)}
           className="absolute -right-1 -top-1 z-10 rounded-full border border-border bg-card p-0.5 text-muted-foreground opacity-0 shadow-sm transition hover:bg-muted hover:text-foreground group-hover/card:opacity-100"
@@ -505,26 +645,37 @@ export default function Dashboard() {
           </svg>
         </button>
         <div className="h-full overflow-hidden rounded-2xl border border-border bg-card panel-enter panel-shadow transition-colors">
+          {/* Drag handle — centered pill at top of card, appears on hover */}
+          {handleListeners && (
+            <div
+              {...handleListeners}
+              className="absolute top-1.5 left-1/2 -translate-x-1/2 z-20 h-1 w-8 rounded-full bg-border cursor-grab active:cursor-grabbing opacity-0 group-hover/card:opacity-100 transition-opacity hover:bg-muted-foreground/50"
+              aria-label={`Drag ${PANEL_LABELS[id]}`}
+            />
+          )}
           {children}
         </div>
       </div>
     );
   }
 
-  function panelContent(id: PanelId) {
+  function panelContent(id: PanelId, handleListeners?: React.HTMLAttributes<HTMLDivElement>) {
     switch (id) {
-      case 'log': return panelCard(id, <RawWorkLog date={date} isDemo={isDemo} onRegisterInsert={(fn) => { insertAtCursorRef.current = fn; }} />);
-      case 'todos': return panelCard(id, <TodoList date={date} isDemo={isDemo} />);
-      case 'prs': return panelCard(id, <MyPRs isDemo={isDemo} onInsert={(text) => insertAtCursorRef.current?.(text)} />);
-      case 'issues': return panelCard(id, <MyIssues isDemo={isDemo} onInsert={(text) => insertAtCursorRef.current?.(text)} />);
-      case 'notifs': return panelCard(id, <GitHubNotifications refreshTrigger={notifsKey} isDemo={isDemo} onInsert={(text) => insertAtCursorRef.current?.(text)} />);
-      case 'sessions': return panelCard(id, <AgentSessions isDemo={isDemo} onInsert={(text) => insertAtCursorRef.current?.(text)} />);
+      case 'log': return panelCard(id, <RawWorkLog date={date} isDemo={isDemo} onRegisterInsert={(fn) => { insertAtCursorRef.current = fn; }} />, handleListeners);
+      case 'todos': return panelCard(id, <TodoList date={date} isDemo={isDemo} />, handleListeners);
+      case 'prs': return panelCard(id, <MyPRs isDemo={isDemo} onInsert={(text) => insertAtCursorRef.current?.(text)} />, handleListeners);
+      case 'issues': return panelCard(id, <MyIssues isDemo={isDemo} onInsert={(text) => insertAtCursorRef.current?.(text)} />, handleListeners);
+      case 'notifs': return panelCard(id, <GitHubNotifications refreshTrigger={notifsKey} isDemo={isDemo} onInsert={(text) => insertAtCursorRef.current?.(text)} />, handleListeners);
+      case 'sessions': return panelCard(id, <AgentSessions isDemo={isDemo} onInsert={(text) => insertAtCursorRef.current?.(text)} />, handleListeners);
     }
   }
 
   function renderPanels() {
-    const visible = ALL_PANELS.filter((id) => visiblePanels.has(id));
-    const panelKey = visible.join(',');
+    // Use live state during drag so panels physically reorder as you drag
+    const renderOrder = livePanelOrder ?? panelOrder;
+    const renderSide = livePanelSide ?? panelSide;
+    const visible = renderOrder.filter((id) => visiblePanels.has(id));
+
     if (visible.length === 0) {
       return (
         <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
@@ -533,14 +684,63 @@ export default function Dashboard() {
       );
     }
 
+    // Stable PanelGroup key: sorted IDs so reordering doesn't unmount the group
+    const stableKey = [...visible].sort().join(',');
+
     if (layout === 'column') {
+      const minHeightPx = visible.length * 400;
       return (
-        <PanelGroup key={`col-${visible.join(',')}`} orientation="vertical" className="min-h-0 flex-1 p-3">
-          {visible.map((id, i) => (
+        <DndContext sensors={dndSensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd} onDragCancel={handleDragCancel}>
+          <SortableContext items={visible} strategy={verticalListSortingStrategy}>
+            <div className="overflow-y-auto flex-1 min-h-0">
+              <PanelGroup key={`col-${stableKey}`} orientation="vertical" className="p-3" style={{ height: '100%', minHeight: minHeightPx }}>
+                {visible.map((id, i) => (
+                  <Fragment key={id}>
+                    {i > 0 && <PanelResizeHandle className="my-1 h-1.5 rounded-full transition hover:bg-accent active:bg-primary/50" />}
+                    <Panel id={id} defaultSize={100 / visible.length} minSize="150px">
+                      <SortablePanelWrapper id={id} isDragging={activeDragId === id}>
+                        {(dragHandleProps) => panelContent(id, dragHandleProps)}
+                      </SortablePanelWrapper>
+                    </Panel>
+                  </Fragment>
+                ))}
+              </PanelGroup>
+            </div>
+          </SortableContext>
+          <DragOverlay>
+            {activeDragId ? (
+              <div className="rounded-2xl border border-primary/40 bg-card shadow-2xl opacity-90 h-16 flex items-center px-4 text-sm font-semibold text-foreground">
+                ⠿ {PANEL_LABELS[activeDragId]}
+              </div>
+            ) : null}
+          </DragOverlay>
+        </DndContext>
+      );
+    }
+
+    // Grid layout: derive left/right from renderSide, respecting renderOrder
+    const leftPanels = visible.filter((id) => renderSide[id] === 'left');
+    const rightPanels = visible.filter((id) => renderSide[id] === 'right');
+
+    function renderGridColumn(panels: PanelId[]) {
+      if (panels.length === 0) return null;
+      const colKey = [...panels].sort().join(',');
+      if (panels.length === 1) {
+        return (
+          <SortablePanelWrapper id={panels[0]} isDragging={activeDragId === panels[0]}>
+            {(handleListeners) => panelContent(panels[0], handleListeners)}
+          </SortablePanelWrapper>
+        );
+      }
+      return (
+        <PanelGroup key={`col-${colKey}`} orientation="vertical">
+          {panels.map((id, i) => (
             <Fragment key={id}>
               {i > 0 && <PanelResizeHandle className="my-1 h-1.5 rounded-full transition hover:bg-accent active:bg-primary/50" />}
-              <Panel defaultSize={100 / visible.length} minSize={10}>
-                {panelContent(id)}
+              <Panel id={id} defaultSize={100 / panels.length} minSize={15}>
+                <SortablePanelWrapper id={id} isDragging={activeDragId === id}>
+                  {(handleListeners) => panelContent(id, handleListeners)}
+                </SortablePanelWrapper>
               </Panel>
             </Fragment>
           ))}
@@ -548,76 +748,96 @@ export default function Dashboard() {
       );
     }
 
-    // Grid layout: left column (log, todos), right column (prs, notifs)
-    const leftPanels = (['log', 'todos'] as PanelId[]).filter((id) => visiblePanels.has(id));
-    const rightPanels = (['prs', 'issues', 'notifs', 'sessions'] as PanelId[]).filter((id) => visiblePanels.has(id));
-
-    // If one side is empty, show only the other
-    if (leftPanels.length === 0 && rightPanels.length > 0) {
-      return (
-        <PanelGroup key={`grid-r-${rightPanels.join(',')}`} orientation="vertical" className="min-h-0 flex-1 p-3">
-          {rightPanels.map((id, i) => (
-            <Fragment key={id}>
-              {i > 0 && <PanelResizeHandle className="my-1 h-1.5 rounded-full transition hover:bg-accent active:bg-primary/50" />}
-              <Panel defaultSize={100 / rightPanels.length} minSize={15}>
-                {panelContent(id)}
-              </Panel>
-            </Fragment>
-          ))}
-        </PanelGroup>
-      );
-    }
-    if (rightPanels.length === 0 && leftPanels.length > 0) {
-      return (
-        <PanelGroup key={`grid-l-${leftPanels.join(',')}`} orientation="vertical" className="min-h-0 flex-1 p-3">
-          {leftPanels.map((id, i) => (
-            <Fragment key={id}>
-              {i > 0 && <PanelResizeHandle className="my-1 h-1.5 rounded-full transition hover:bg-accent active:bg-primary/50" />}
-              <Panel defaultSize={100 / leftPanels.length} minSize={15}>
-                {panelContent(id)}
-              </Panel>
-            </Fragment>
-          ))}
-        </PanelGroup>
-      );
-    }
-
-    return (
-      <PanelGroup key={`grid-${visible.join(',')}`} orientation="horizontal" className="min-h-0 flex-1 p-3">
-        <Panel defaultSize={55} minSize={30}>
-          {leftPanels.length === 1 ? (
-            panelContent(leftPanels[0])
-          ) : (
-            <PanelGroup orientation="vertical">
-              {leftPanels.map((id, i) => (
-                <Fragment key={id}>
-                  {i > 0 && <PanelResizeHandle className="my-1 h-1.5 rounded-full transition hover:bg-accent active:bg-primary/50" />}
-                  <Panel defaultSize={i === 0 ? 60 : 40} minSize={15}>
-                    {panelContent(id)}
-                  </Panel>
-                </Fragment>
-              ))}
-            </PanelGroup>
-          )}
+    // Single SortableContext with ALL visible panels so cross-column drag works.
+    const leftKey = [...leftPanels].sort().join(',');
+    const rightKey = [...rightPanels].sort().join(',');
+    const gridContent = leftPanels.length === 0 ? (
+      <PanelGroup key={`grid-r-${stableKey}`} orientation="vertical" className="min-h-0 flex-1 p-3">
+        {rightPanels.map((id, i) => (
+          <Fragment key={id}>
+            {i > 0 && <PanelResizeHandle className="my-1 h-1.5 rounded-full transition hover:bg-accent active:bg-primary/50" />}
+            <Panel id={id} defaultSize={100 / rightPanels.length} minSize={15}>
+              <SortablePanelWrapper id={id} isDragging={activeDragId === id}>
+                {(handleListeners) => panelContent(id, handleListeners)}
+              </SortablePanelWrapper>
+            </Panel>
+          </Fragment>
+        ))}
+      </PanelGroup>
+    ) : rightPanels.length === 0 ? (
+      <PanelGroup key={`grid-l-${stableKey}`} orientation="vertical" className="min-h-0 flex-1 p-3">
+        {leftPanels.map((id, i) => (
+          <Fragment key={id}>
+            {i > 0 && <PanelResizeHandle className="my-1 h-1.5 rounded-full transition hover:bg-accent active:bg-primary/50" />}
+            <Panel id={id} defaultSize={100 / leftPanels.length} minSize={15}>
+              <SortablePanelWrapper id={id} isDragging={activeDragId === id}>
+                {(handleListeners) => panelContent(id, handleListeners)}
+              </SortablePanelWrapper>
+            </Panel>
+          </Fragment>
+        ))}
+      </PanelGroup>
+    ) : (
+      <PanelGroup key={`grid-${stableKey}`} orientation="horizontal" className="min-h-0 flex-1 p-3">
+        <Panel id="left-col" defaultSize={55} minSize={30}>
+          {renderGridColumn(leftPanels)}
         </Panel>
         <PanelResizeHandle className="mx-1 w-1.5 rounded-full transition hover:bg-accent active:bg-primary/50" />
-        <Panel defaultSize={45} minSize={25}>
-          {rightPanels.length === 1 ? (
-            panelContent(rightPanels[0])
-          ) : (
-            <PanelGroup orientation="vertical">
-              {rightPanels.map((id, i) => (
-                <Fragment key={id}>
-                  {i > 0 && <PanelResizeHandle className="my-1 h-1.5 rounded-full transition hover:bg-accent active:bg-primary/50" />}
-                  <Panel defaultSize={50} minSize={15}>
-                    {panelContent(id)}
-                  </Panel>
-                </Fragment>
-              ))}
-            </PanelGroup>
-          )}
+        <Panel id="right-col" defaultSize={45} minSize={25}>
+          {renderGridColumn(rightPanels)}
         </Panel>
       </PanelGroup>
     );
+
+    return (
+      <DndContext sensors={dndSensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd} onDragCancel={handleDragCancel}>
+        <SortableContext items={visible} strategy={verticalListSortingStrategy}>
+          {gridContent}
+        </SortableContext>
+        {renderDragOverlay()}
+      </DndContext>
+    );
   }
+
+  function renderDragOverlay() {
+    return (
+      <DragOverlay>
+        {activeDragId ? (
+          <div className="rounded-2xl border border-primary/40 bg-card shadow-2xl opacity-90 h-16 flex items-center px-4 text-sm font-semibold text-foreground">
+            ⠿ {PANEL_LABELS[activeDragId]}
+          </div>
+        ) : null}
+      </DragOverlay>
+    );
+  }
+}
+
+// ── Sortable panel wrapper ────────────────────────────────────────────────────
+function SortablePanelWrapper({
+  id,
+  isDragging,
+  children,
+}: {
+  id: string;
+  isDragging: boolean;
+  children: (handleListeners: React.HTMLAttributes<HTMLDivElement>) => React.ReactNode;
+}) {
+  const { attributes, listeners, setNodeRef } = useSortable({ id });
+
+  // Don't apply dnd-kit's transform — panels live inside react-resizable-panels
+  // containers with overflow:hidden, so translateY shifts cause panels to clip and
+  // disappear. The DragOverlay handles visual drag feedback instead.
+  const style: React.CSSProperties = {
+    height: '100%',
+    opacity: isDragging ? 0 : 1,
+  };
+
+  // Only listeners go on the grip handle; attributes (aria) go on the container.
+  const handleListeners: React.HTMLAttributes<HTMLDivElement> = listeners ?? {};
+
+  return (
+    <div ref={setNodeRef} style={style} {...attributes}>
+      {children(handleListeners)}
+    </div>
+  );
 }

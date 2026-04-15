@@ -8,7 +8,7 @@
 
 ## Features
 
-- **📝 Work Log Editor** — A rich hybrid editor. Type markdown naturally — headings, bold, lists, and links render inline as you type.
+- **📝 Work Log Editor** - A rich hybrid editor. Type markdown naturally — headings, bold, lists, code fences, and links render inline as you type. Drag-and-drop or paste images directly where you want them — they appear as inline thumbnails with a delete button, and clicking opens the full-size image. Images are stored in the repo at full resolution.
 - **📅 Date Navigation** — Browse past logs with a calendar picker. Dates that have content show a dot indicator. Use ← / → to step day by day, or click **Today** to jump back.
 - **🪄 Linkify** — Click **🪄 Linkify** to resolve bare GitHub URLs to titled markdown links. Updates the log in-place.
 - **✨ AI Assistant** — A unified modal (toolbar ✨ button) with two modes:
@@ -31,7 +31,7 @@
 - **🤖 Agent Sessions** — Browse recent Copilot CLI sessions pulled from `~/.copilot/session-store.db`. Sessions are grouped by date (**Today / Yesterday / This Week / Older**) and each entry shows the session summary, turn count, time elapsed, and any linked PR or commit badges. Hover any session to reveal an insert button that pastes a formatted markdown link into your Work Log. Hidden by default — enable it from the ☰ panel menu.
 - **🚀 Auto-commit & Push** — Hourly auto-commit of your logs and TODOs to a git repo, with push to remote. The commit button provides inline visual feedback — it changes color and text to show success, "no changes", or error states for 3 seconds, then reverts. No layout shift.
 - **⚙️ Settings** — Ignore noisy repos in notifications. Adjust **font size** across the dashboard (Compact / Default / Comfortable / Large) — only text scales, layout stays stable. Font size is saved to `data/config.json` for persistence; layout and panel visibility preferences are saved in localStorage.
-- **▤ Layout modes** — Toggle between grid (2-column) and column (single-column) layouts. Hide individual panels and restore them from the ☰ menu. Preferences are saved in localStorage.
+- **▤ Layout modes** — Toggle between grid (2-column) and column (single-column) layouts. Hide individual panels and restore them from the ☰ menu. **Drag any panel by its card surface to reorder it or move it between grid columns.** Positions, order, and visibility are all saved in localStorage.
 - **🌗 Dark Mode** — First-class support for both light and dark themes.
 
 ## Prerequisites
@@ -106,9 +106,9 @@
 
 ## How It Works
 
-- **Storage:** Daily logs are saved as `logs/YYYY-MM-DD.md`. Summaries are saved in `summaries/YYYY-MM-DD-{type}.md`. TODOs live in `data/todos.json`. Settings in `data/config.json`.
+- **Storage:** Daily logs are saved as `logs/YYYY-MM-DD.md`. Image attachments are stored in `attachments/YYYY-MM-DD/`. Summaries are saved in `summaries/YYYY-MM-DD-{type}.md`. TODOs live in `data/todos.json`. Settings in `data/config.json`.
 - **Linkify:** Click **🪄 Linkify** in the log panel. Strips GitHub URLs to their bare form first (removing sub-paths like `/files`, fragments, and query params), then resolves them to titled markdown links (e.g. `[Fix auth bug (#123)](url)`). Saves the result back to the same file.
-- **Auto-commit:** Every hour while the app is running, changes to `logs/`, `summaries/`, and `data/` are committed and pushed. You can also trigger a manual commit via the 🚀 button.
+- **Auto-commit:** Every hour while the app is running, changes to `logs/`, `summaries/`, `attachments/`, and `data/` are committed and pushed. You can also trigger a manual commit via the 🚀 button.
 - **Timezone:** All dates use America/Los_Angeles (Pacific Time). Edit `getTodayDate()` in `src/lib/files.ts` to change.
 
 ## Tech Stack
@@ -120,6 +120,7 @@
 - Space Grotesk + JetBrains Mono fonts
 - Octokit for GitHub API
 - react-resizable-panels for layout
+- @dnd-kit/core + @dnd-kit/sortable for drag-and-drop panel reordering
 - `better-sqlite3` for reading the Copilot CLI session store
 
 ## Screenshots

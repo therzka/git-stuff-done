@@ -1,10 +1,11 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { FileText, Link2 } from 'lucide-react';
+import { AlertTriangle, FileText, Link2 } from 'lucide-react';
 import TiptapEditor, { type TiptapEditorHandle } from './TiptapEditor';
 import { DEMO_LOG_CONTENT, DEMO_RICH_LOG_CONTENT } from '@/lib/demo';
 import SlackThreadModal from './SlackThreadModal';
+import { PLACEHOLDER_PREFIX } from '@/lib/customImage';
 
 type SaveStatus = 'idle' | 'unsaved' | 'saving' | 'saved';
 
@@ -31,7 +32,9 @@ export default function RawWorkLog({ date, isDemo = false, onRegisterInsert }: R
   const [status, setStatus] = useState<SaveStatus>('idle');
   const [linkifying, setLinkifying] = useState(false);
   const [slackModalUrl, setSlackModalUrl] = useState<string | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const errorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const latestContentRef = useRef(content);
   const editorRef = useRef<TiptapEditorHandle>(null);
 
@@ -71,7 +74,7 @@ export default function RawWorkLog({ date, isDemo = false, onRegisterInsert }: R
     } catch {
       setStatus('unsaved');
     }
-  }, [currentDate]);
+  }, [currentDate, isDemo]);
 
   const handleLinkify = async () => {
     setLinkifying(true);
@@ -112,9 +115,35 @@ export default function RawWorkLog({ date, isDemo = false, onRegisterInsert }: R
 
   const handleEditorUpdate = useCallback((markdown: string) => {
     latestContentRef.current = markdown;
-    setContent(markdown);
-    scheduleAutosave(markdown);
+    // Pause auto-save while any image upload placeholder is in the document
+    if (!markdown.includes(PLACEHOLDER_PREFIX)) {
+      scheduleAutosave(markdown);
+    }
   }, [scheduleAutosave]);
+
+  const handleImageUpload = useCallback(async (file: File): Promise<string> => {
+    if (isDemo) throw new Error('Upload disabled in demo mode');
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('date', currentDate);
+    const res = await fetch('/api/attachments', { method: 'POST', body: formData });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Upload failed');
+    return data.url;
+  }, [currentDate, isDemo]);
+
+  const handleDeleteImage = useCallback(async (url: string) => {
+    if (isDemo) return;
+    try {
+      await fetch(url, { method: 'DELETE' });
+    } catch { /* ignore */ }
+  }, [isDemo]);
+
+  const handleUploadError = useCallback((msg: string) => {
+    setUploadError(msg);
+    if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
+    errorTimerRef.current = setTimeout(() => setUploadError(null), 4000);
+  }, []);
 
   const insertAtCursor = useCallback((text: string) => {
     editorRef.current?.insertAtCursor(text);
@@ -125,7 +154,10 @@ export default function RawWorkLog({ date, isDemo = false, onRegisterInsert }: R
   }, [onRegisterInsert, insertAtCursor]);
 
   useEffect(() => {
-    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+      if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
+    };
   }, []);
 
   return (
@@ -156,8 +188,11 @@ export default function RawWorkLog({ date, isDemo = false, onRegisterInsert }: R
         ref={editorRef}
         content={content}
         onUpdate={handleEditorUpdate}
-        placeholder={"Start typing your work log..."}
         onSlackLinkClick={setSlackModalUrl}
+        placeholder="Start typing your work log..."
+        onImageUpload={handleImageUpload}
+        onDeleteImage={handleDeleteImage}
+        onUploadError={handleUploadError}
       />
       <SlackThreadModal
         isOpen={slackModalUrl !== null}
@@ -165,6 +200,12 @@ export default function RawWorkLog({ date, isDemo = false, onRegisterInsert }: R
         url={slackModalUrl ?? ''}
         onInsert={(text) => editorRef.current?.insertAtCursor(text)}
       />
+      {uploadError && (
+        <div className="shrink-0 border-t border-destructive/20 px-4 py-2.5 bg-destructive/10 text-destructive text-sm flex items-center gap-2">
+          <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" />
+          {uploadError}
+        </div>
+      )}
     </div>
   );
 }

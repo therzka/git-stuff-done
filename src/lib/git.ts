@@ -7,7 +7,7 @@ export function commitWorkLog(
   const cwd = getDataRoot();
 
   // Stage logs/, summaries/ and data/ directories individually to avoid partial failure
-  const dirs = ["logs", "data", "summaries"];
+  const dirs = ["logs", "data", "summaries", "attachments"];
   for (const dir of dirs) {
     try {
       execFileSync("git", ["add", dir], { cwd });
