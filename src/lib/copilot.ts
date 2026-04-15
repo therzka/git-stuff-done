@@ -35,10 +35,10 @@ export function linkifySlackUrls(markdown: string): string {
   // Replace <https://...slack.com/...> angle-bracket autolinks first
   let result = markdown.replace(
     /<(https:\/\/[a-zA-Z0-9-]+\.slack\.com\/[^\s>]*)>/g,
-    '[Slack link]($1)',
+    '[\[Slack link\]]($1)',
   );
   // Replace remaining bare Slack URLs not already inside a markdown link
-  result = result.replace(SLACK_URL_RE, '[Slack link]($1)');
+  result = result.replace(SLACK_URL_RE, '[\[Slack link\]]($1)');
   return result;
 }
 
