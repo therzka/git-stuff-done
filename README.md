@@ -21,7 +21,7 @@
   - Results render as **rich text** (headings, bold, links, lists) but copy as **markdown** — select and copy from results or use the Copy button to get clean markdown.
 - **🤖 Dynamic Model Loading** — Available AI models are loaded from the Copilot SDK at runtime and cached for 24 hours. Falls back to a built-in default list if the SDK is unavailable.
 - **📋 Saved Summaries** — Browse, preview, copy, and delete past AI-generated summaries. Opens from the toolbar 📋 button. Summaries render as rich text with markdown-on-copy.
-- **✅ TODO List** — Manual TODOs with inline editing + AI-suggested action items based on your work log.
+- **✅ TODO List** — Manual TODOs with inline editing, drag-to-reorder, and AI-suggested action items based on your work log.
 - **@️ @Mentions** — Type `@` in the editor to search your GitHub org's members. A dropdown shows matching usernames with avatars; select one to insert a bold, linked mention (e.g. **[@username](https://github.com/username)**). Supports keyboard navigation (↑/↓/Enter/Esc).
 - **🔀 My PRs** — Live feed of your open PRs (authored or assigned) in your GitHub org with status badges: **Copilot** (authored by Copilot, you're an assignee), **Draft**, **Queued** / **Merging** (merge queue), **CI Failing** (required checks only), **Needs Review** (awaiting human review), and **unanswered comment count** (excludes bots and resolved threads). Click the insert button on any PR to paste its link at the cursor in your work log.
 - **🐛 My Issues** — Open issues assigned to you across your GitHub org, showing labels (toggleable) and comment counts. Linked PRs appear as chips styled by state (open/draft/merged/closed). Click the insert button to paste a link at the cursor in your work log.
