@@ -733,7 +733,7 @@ export default function Dashboard() {
         );
       }
       return (
-        <PanelGroup key={`col-${colKey}`} orientation="vertical">
+        <PanelGroup key={`col-${colKey}`} orientation="vertical" style={{ height: '100%' }}>
           {panels.map((id, i) => (
             <Fragment key={id}>
               {i > 0 && <PanelResizeHandle className="my-1 h-1.5 rounded-full transition hover:bg-accent active:bg-primary/50" />}
