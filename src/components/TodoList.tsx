@@ -181,15 +181,15 @@ export default function TodoList({ date, isDemo = false }: { date?: string, isDe
   return (
     <div className="h-full flex flex-col">
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
-        <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
-          <ClipboardList className="h-4 w-4" aria-hidden="true" />
+        <h2 className="text-base font-bold text-foreground flex items-center gap-2">
+          <ClipboardList className="h-5 w-5 text-amber-600 dark:text-amber-400" aria-hidden="true" />
           TODOs
         </h2>
         <button
           onClick={suggest}
           disabled={suggesting}
           title={isDemo ? 'Suggest todos (Demo)' : 'Suggest todos'}
-          className="flex items-center gap-1.5 rounded-xl bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground shadow-sm transition hover:opacity-90 disabled:opacity-50"
+          className="flex items-center gap-1.5 rounded-xl bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-amber-700 disabled:opacity-50 dark:bg-amber-600 dark:hover:bg-amber-500"
         >
           <Sparkles className="h-3 w-3" aria-hidden="true" />
           {suggesting ? 'Thinking…' : 'Suggest'}

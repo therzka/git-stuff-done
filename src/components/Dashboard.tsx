@@ -727,13 +727,15 @@ export default function Dashboard() {
       const colKey = [...panels].sort().join(',');
       if (panels.length === 1) {
         return (
-          <SortablePanelWrapper id={panels[0]} isDragging={activeDragId === panels[0]}>
-            {(handleListeners) => panelContent(panels[0], handleListeners)}
-          </SortablePanelWrapper>
+          <div className="h-full flex flex-col">
+            <SortablePanelWrapper id={panels[0]} isDragging={activeDragId === panels[0]}>
+              {(handleListeners) => panelContent(panels[0], handleListeners)}
+            </SortablePanelWrapper>
+          </div>
         );
       }
       return (
-        <PanelGroup key={`col-${colKey}`} orientation="vertical">
+        <PanelGroup key={`col-${colKey}`} orientation="vertical" className="h-full">
           {panels.map((id, i) => (
             <Fragment key={id}>
               {i > 0 && <PanelResizeHandle className="my-1 h-1.5 rounded-full transition hover:bg-accent active:bg-primary/50" />}

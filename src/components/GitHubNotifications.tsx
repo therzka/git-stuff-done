@@ -41,7 +41,8 @@ const reasonColors: Record<string, string> = {
 
 function reasonBadge(reason: string) {
   const colors = reasonColors[reason] ?? 'bg-muted text-muted-foreground';
-  const label = reason.replace(/_/g, ' ');
+  const displayLabels: Record<string, string> = { assign: 'assigned', review_requested: 'review requested', ci_activity: 'ci activity' };
+  const label = displayLabels[reason] ?? reason.replace(/_/g, ' ');
   return (
     <span
       className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${colors}`}
@@ -125,8 +126,8 @@ export default function GitHubNotifications({ isDemo = false, onInsert, refreshT
     <div className="flex h-full flex-col rounded-xl text-foreground">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
-        <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
-          <Bell className="h-4 w-4" aria-hidden="true" />
+        <h2 className="text-base font-bold text-foreground flex items-center gap-2">
+          <Bell className="h-5 w-5 text-rose-500 dark:text-rose-400" aria-hidden="true" />
           Notifications
         </h2>
         <button

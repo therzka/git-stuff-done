@@ -92,8 +92,8 @@ export default function AgentSessions({
     <div className="flex h-full flex-col">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-        <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
-          <Bot className="h-4 w-4" aria-hidden="true" />
+        <h2 className="text-base font-bold text-foreground flex items-center gap-2">
+          <Bot className="h-5 w-5 text-indigo-500 dark:text-indigo-400" aria-hidden="true" />
           <a
             href="https://github.com/copilot/agents"
             target="_blank"

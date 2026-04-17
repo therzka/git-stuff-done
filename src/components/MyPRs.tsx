@@ -90,8 +90,8 @@ export default function MyPRs({
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
-        <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
-          <GitMerge className="h-4 w-4" aria-hidden="true" />
+        <h2 className="text-base font-bold text-foreground flex items-center gap-2">
+          <GitMerge className="h-5 w-5 text-blue-600 dark:text-blue-400" aria-hidden="true" />
           My PRs
         </h2>
         <button

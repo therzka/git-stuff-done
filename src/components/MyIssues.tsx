@@ -95,8 +95,8 @@ export default function MyIssues({
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
-        <h2 className="text-base font-semibold text-foreground flex items-center gap-1.5">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4" aria-hidden="true"><path d="M8 6h10"/><path d="M6 12h9"/><path d="M11 18h7"/><circle cx="3" cy="6" r="1"/><circle cx="3" cy="12" r="1"/><circle cx="3" cy="18" r="1"/></svg>
+        <h2 className="text-base font-bold text-foreground flex items-center gap-1.5">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 text-orange-500 dark:text-orange-400" aria-hidden="true"><path d="M8 6h10"/><path d="M6 12h9"/><path d="M11 18h7"/><circle cx="3" cy="6" r="1"/><circle cx="3" cy="12" r="1"/><circle cx="3" cy="18" r="1"/></svg>
             My Issues
           </h2>
         <div className="flex items-center gap-1">
