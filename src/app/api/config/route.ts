@@ -18,6 +18,10 @@ export async function PUT(request: NextRequest) {
       .slice(0, 100);
   }
 
+  if (typeof body.preferredModel === "string") {
+    config.preferredModel = body.preferredModel.trim().slice(0, 200) || undefined;
+  }
+
   if (typeof body.fontSize === "string" && ["0.875", "1", "1.125", "1.25"].includes(body.fontSize)) {
     config.fontSize = body.fontSize;
   }

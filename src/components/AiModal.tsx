@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { X, AlertTriangle, Search, Square, CheckCircle2 } from 'lucide-react';
 import { useModels } from '@/hooks/useModels';
 import MarkdownViewer from '@/components/MarkdownViewer';
@@ -19,9 +19,10 @@ interface AiModalProps {
   defaultTab: 'search' | 'summarize';
   defaultDate: string;
   isDemo?: boolean;
+  preferredModel?: string;
 }
 
-export default function AiModal({ isOpen, onClose, defaultTab, defaultDate, isDemo = false }: AiModalProps) {
+export default function AiModal({ isOpen, onClose, defaultTab, defaultDate, isDemo = false, preferredModel = '' }: AiModalProps) {
   const panelRef = useRef<HTMLDivElement>(null);
 
   // Dynamic model loading
@@ -29,14 +30,24 @@ export default function AiModal({ isOpen, onClose, defaultTab, defaultDate, isDe
 
   // Shared state
   const [activeTab, setActiveTab] = useState<'search' | 'summarize'>(defaultTab);
-  const [selectedModel, setSelectedModel] = useState('');
+  const [selectedModel, setSelectedModel] = useState(preferredModel);
+
+  // Sorted models: preferred first
+  const sortedModels = useMemo(
+    () => [
+      ...models.filter((m) => m.id === preferredModel),
+      ...models.filter((m) => m.id !== preferredModel),
+    ],
+    [models, preferredModel],
+  );
 
   // Set default model once models load
   useEffect(() => {
     if (models.length > 0 && !selectedModel) {
-      setSelectedModel(models[0].id);
+      const preferred = preferredModel && models.find((m) => m.id === preferredModel);
+      setSelectedModel(preferred ? preferredModel : models[0].id);
     }
-  }, [models, selectedModel]);
+  }, [models, selectedModel, preferredModel]);
 
   // Search pane state
   const DEMO_QUERY = 'when did I meet with sarah?';
@@ -435,8 +446,8 @@ export default function AiModal({ isOpen, onClose, defaultTab, defaultDate, isDe
                   disabled={searchLoading || modelsLoading}
                   className="w-full rounded-xl border border-input bg-muted/50 px-3 py-2 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-ring/20 transition-all cursor-pointer"
                 >
-                  {models.map((m) => (
-                    <option key={m.id} value={m.id}>{m.name}</option>
+                  {sortedModels.map((m) => (
+                    <option key={m.id} value={m.id}>{m.name}{m.id === preferredModel ? ' ★' : ''}</option>
                   ))}
                 </select>
               </div>
@@ -568,8 +579,8 @@ export default function AiModal({ isOpen, onClose, defaultTab, defaultDate, isDe
                     disabled={modelsLoading}
                     className="w-full rounded-xl border border-input bg-muted/50 px-3 py-2 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-ring/20 transition-all cursor-pointer"
                   >
-                    {models.map((m) => (
-                      <option key={m.id} value={m.id}>{m.name}</option>
+                    {sortedModels.map((m) => (
+                      <option key={m.id} value={m.id}>{m.name}{m.id === preferredModel ? ' ★' : ''}</option>
                     ))}
                   </select>
                 </div>

@@ -13,6 +13,7 @@ export type TodoItem = {
 
 export type AppConfig = {
   ignoredRepos: string[];
+  preferredModel?: string;
   fontSize: string;
 };
 
