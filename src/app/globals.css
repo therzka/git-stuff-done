@@ -146,6 +146,10 @@ body {
   font-family: var(--font-sans), system-ui, sans-serif;
 }
 
+button {
+  cursor: pointer;
+}
+
 textarea,
 code,
 pre {

@@ -195,7 +195,7 @@ export default function CalendarPicker({ date, onChange }: CalendarPickerProps) 
           }
           setOpen((o) => !o);
         }}
-        className="text-sm font-medium text-foreground hover:text-primary transition-colors cursor-pointer"
+        className="text-sm font-bold text-foreground hover:text-primary transition-colors cursor-pointer"
         title="Click to open calendar"
       >
         {displayDate}
