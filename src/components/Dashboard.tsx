@@ -277,6 +277,16 @@ export default function Dashboard() {
     setMounted(true);
   }, []);
 
+  // In demo mode, ensure sessions panel is visible without polluting localStorage
+  useEffect(() => {
+    if (isDemo) {
+      setVisiblePanels((prev) => {
+        if (prev.has('sessions')) return prev;
+        return new Set([...prev, 'sessions']);
+      });
+    }
+  }, [isDemo]);
+
   function shiftDate(days: number) {
     const d = new Date(date + 'T12:00:00');
     d.setDate(d.getDate() + days);

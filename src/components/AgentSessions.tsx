@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Bot, GitPullRequest, CheckCircle } from 'lucide-react';
 import { useVisibilityPolling } from '@/hooks/useVisibilityPolling';
 import type { AgentSession } from '@/app/api/sessions/route';
+import { DEMO_SESSIONS } from '@/lib/demo';
 
 // Module-level cache to survive remounts (e.g. layout switches)
 let _sessionCache: AgentSession[] | null = null;
@@ -59,6 +60,7 @@ export default function AgentSessions({
   const refresh = useCallback(async (showLoading = false) => {
     if (showLoading) setLoading(true);
     if (isDemo) {
+      setSessions(DEMO_SESSIONS);
       setLoading(false);
       return;
     }
@@ -135,7 +137,7 @@ export default function AgentSessions({
         {!loading && sessions.length === 0 && (
           <div className="flex items-center justify-center gap-2 py-12 text-sm text-muted-foreground">
             <CheckCircle className="h-4 w-4" aria-hidden="true" />
-            {isDemo ? 'Agent Sessions not available in demo mode' : 'No sessions found'}
+            {isDemo ? 'No sessions found' : 'No sessions found'}
           </div>
         )}
 

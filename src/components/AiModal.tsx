@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { X, AlertTriangle, Search, Square, CheckCircle2 } from 'lucide-react';
 import { useModels } from '@/hooks/useModels';
 import MarkdownViewer from '@/components/MarkdownViewer';
+import { DEMO_SEARCH_QUERY, DEMO_SEARCH_RESULT, DEMO_SUMMARY_RESULT } from '@/lib/demo';
 
 const DEFAULT_PROMPTS = [
   { label: 'Daily Standup', value: 'Summarize my work for a daily standup meeting. Focus on what was completed, what is in progress, and any blockers.' },
@@ -39,9 +40,9 @@ export default function AiModal({ isOpen, onClose, defaultTab, defaultDate, isDe
   }, [models, selectedModel]);
 
   // Search pane state
-  const DEMO_QUERY = 'when did I meet with sarah?';
-  const DEMO_RESULT = "Based on your work logs, you last met with Sarah on **2026-02-27** (Thursday).\n\n**From that day's log:**\n- 1:1 with Sarah — discussed Q2 roadmap priorities and the upcoming analytics migration\n- Agreed to sync again after the design review next Wednesday\n\nBefore that, you also met on **2026-02-13** for sprint planning.";
-
+  const demoInitRef = useRef(false);
+  const demoSummarizeInitRef = useRef(false);
+  const abortRef = useRef<AbortController | null>(null);
   const [query, setQuery] = useState('');
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchResult, setSearchResult] = useState<string | null>(null);
@@ -53,8 +54,6 @@ export default function AiModal({ isOpen, onClose, defaultTab, defaultDate, isDe
   const [progressMessage, setProgressMessage] = useState<string | null>(null);
   const [savingSearch, setSavingSearch] = useState(false);
   const [searchSaveMessage, setSearchSaveMessage] = useState<string | null>(null);
-  const abortRef = useRef<AbortController | null>(null);
-  const demoInitRef = useRef(false);
 
   // Summarize pane state
   const [startDate, setStartDate] = useState(defaultDate);
@@ -115,12 +114,23 @@ export default function AiModal({ isOpen, onClose, defaultTab, defaultDate, isDe
   useEffect(() => {
     if (isOpen && isDemo && !demoInitRef.current) {
       demoInitRef.current = true;
-      setQuery(DEMO_QUERY);
-      setSearchResult(DEMO_RESULT);
+      setQuery(DEMO_SEARCH_QUERY);
+      setSearchResult(DEMO_SEARCH_RESULT);
       setDaysSearched(7);
     }
     if (!isOpen) {
       demoInitRef.current = false;
+    }
+  }, [isOpen, isDemo]);
+
+  // Summarize demo init
+  useEffect(() => {
+    if (isOpen && isDemo && !demoSummarizeInitRef.current) {
+      demoSummarizeInitRef.current = true;
+      setSummaryResult(DEMO_SUMMARY_RESULT);
+    }
+    if (!isOpen) {
+      demoSummarizeInitRef.current = false;
     }
   }, [isOpen, isDemo]);
 
@@ -154,7 +164,7 @@ export default function AiModal({ isOpen, onClose, defaultTab, defaultDate, isDe
 
     if (isDemo) {
       setTimeout(() => {
-        setSearchResult("## Demo Search Result\n\nThis is a simulated search result. In a real environment, this would search through your work logs using AI.\n\n**Found in logs from 2026-03-01:**\n- Worked on authentication refactor\n- Fixed CI pipeline issues");
+        setSearchResult(DEMO_SEARCH_RESULT);
         setDaysSearched(7);
         setSearchLoading(false);
       }, 1500);
@@ -298,7 +308,7 @@ export default function AiModal({ isOpen, onClose, defaultTab, defaultDate, isDe
 
     if (isDemo) {
       setTimeout(() => {
-        setSummaryResult("## Demo Summary\n\nThis is a generated summary of your work. In a real environment, this would be an AI-generated summary of your logs and pull requests.\n\n### Key Achievements\n- Implemented new features\n- Fixed critical bugs\n- Collaborated with the team\n\n### Next Steps\n- Deploy to production\n- Monitor performance");
+        setSummaryResult(DEMO_SUMMARY_RESULT);
         setSummaryLoading(false);
       }, 1500);
       return;
