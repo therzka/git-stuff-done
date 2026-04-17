@@ -58,7 +58,8 @@ export default function MyIssues({
   const [copilotIssue, setCopilotIssue] = useState<Issue | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (showLoading = false) => {
+    if (showLoading) setLoading(true);
     try {
       if (isDemo) {
         setIssues(DEMO_ISSUES);
@@ -79,8 +80,9 @@ export default function MyIssues({
     }
   }, [isDemo]);
 
+  // Initial fetch shows loading only if cache is empty
   useEffect(() => {
-    refresh();
+    refresh(_issueCache === null);
   }, [refresh]);
   useVisibilityPolling(refresh, 120_000);
   useEffect(
@@ -107,7 +109,7 @@ export default function MyIssues({
             <Tag className="h-4 w-4" aria-hidden="true" />
           </button>
           <button
-          onClick={refresh}
+          onClick={() => refresh(true)}
           className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
           aria-label="Refresh Issues"
         >
@@ -164,7 +166,7 @@ export default function MyIssues({
                     <button
                       onClick={() =>
                         onInsert(
-                          `[${issue.repoFullName}#${issue.number} ${issue.title}](${issue.url})`,
+                          `[${issue.title} (${issue.repoFullName}#${issue.number})](${issue.url})`,
                         )
                       }
                       title="Insert link at cursor"

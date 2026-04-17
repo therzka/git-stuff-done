@@ -1,12 +1,31 @@
 import { TodoItem } from "@/lib/files";
 import { COPILOT_AGENT_LOGIN } from "@/lib/constants";
 
+export const DEMO_CONFIG = {
+  ignoredRepos: ["noisy-bot-repo", "archived-2024"],
+  fontSize: "1",
+};
+
+export const DEMO_SLACK_THREAD = `**@sarah** — 2:45 PM
+Let's prioritize mobile responsiveness for Q3. The analytics show 40% of our users are on mobile devices, but the dashboard is barely usable on phones.
+
+**@alex** — 2:47 PM
+Agreed. I can start on the responsive layout next week. Should we also address the API latency issue? It's causing slow chart renders on mobile networks.
+
+**@you** — 2:50 PM
+Yes to both! Let me create tickets for:
+- Mobile responsive layout
+- API response caching
+- Chart lazy loading
+
+I'll add these to the Q3 roadmap doc.`;
+
 export const DEMO_LOG_CONTENT = `
 - **Project: Analytics Dashboard**
   - [x] Refactor data fetching hook to use SWR
   - [x] Fix hydration mismatch error in chart component
   - [ ] Add unit tests for date range picker
-  - Meeting with @sarah to discuss Q3 roadmap
+  - Meeting with @sarah to discuss Q3 roadmap — [Slack thread](https://example.slack.com/archives/C01ABC123/p1234567890)
     - Need to prioritize mobile responsiveness
     - backend API latency is a concern
 - **Code Review**
@@ -24,7 +43,7 @@ export const DEMO_RICH_LOG_CONTENT = `
   - [x] Refactor data fetching hook to use SWR
   - [x] Fix hydration mismatch error in chart component
   - [ ] Add unit tests for date range picker
-  - Meeting with @sarah to discuss Q3 roadmap
+  - Meeting with @sarah to discuss Q3 roadmap — [Slack thread](https://example.slack.com/archives/C01ABC123/p1234567890)
     - Need to prioritize mobile responsiveness
     - backend API latency is a concern
 - **Code Review**

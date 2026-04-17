@@ -22,6 +22,10 @@ export async function PUT(request: NextRequest) {
     config.preferredModel = body.preferredModel.trim().slice(0, 200) || undefined;
   }
 
+  if (typeof body.fontSize === "string" && ["0.875", "1", "1.125", "1.25"].includes(body.fontSize)) {
+    config.fontSize = body.fontSize;
+  }
+
   await writeConfig(config);
   return NextResponse.json(config);
 }

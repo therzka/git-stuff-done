@@ -32,6 +32,11 @@ export default function RootLayout({
       <body
         className={`${spaceGrotesk.variable} ${jetbrainsMono.variable} antialiased`}
       >
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{var s=localStorage.getItem('gsd-font-size');if(s&&['0.875','1','1.125','1.25'].indexOf(s)!==-1)document.documentElement.style.setProperty('--text-scale',s)}catch(e){}`,
+          }}
+        />
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

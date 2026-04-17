@@ -85,7 +85,8 @@ export default function GitHubNotifications({ isDemo = false, onInsert, refreshT
   const visibleNotifications = notifications.filter((n) => !hiddenIds.has(n.id));
   const hiddenCount = notifications.length - visibleNotifications.length;
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (showLoading = false) => {
+    if (showLoading) setLoading(true);
     try {
       if (isDemo) {
         setNotifications(DEMO_NOTIFICATIONS);
@@ -107,8 +108,8 @@ export default function GitHubNotifications({ isDemo = false, onInsert, refreshT
     }
   }, [isDemo]);
 
-  // Initial fetch + visibility-aware polling
-  useEffect(() => { refresh(); }, [refresh]);
+  // Initial fetch shows loading only if cache is empty
+  useEffect(() => { refresh(_notifCache === null); }, [refresh]);
   useVisibilityPolling(refresh, 60_000);
 
   // Refetch when refreshTrigger changes (e.g. ignored repos updated)
@@ -129,7 +130,7 @@ export default function GitHubNotifications({ isDemo = false, onInsert, refreshT
           Notifications
         </h2>
         <button
-          onClick={refresh}
+          onClick={() => refresh(true)}
           disabled={isDemo}
           className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground disabled:opacity-50"
           aria-label="Refresh notifications"

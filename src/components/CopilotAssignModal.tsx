@@ -386,7 +386,7 @@ export default function CopilotAssignModal({
 
           {/* Success */}
           {success && (
-            <div className="text-sm text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 p-3 rounded-xl border border-emerald-500/20 flex items-center gap-2">
+            <div className="text-sm text-success-foreground bg-success/10 p-3 rounded-xl border border-success/20 flex items-center gap-2">
               <Check className="h-4 w-4 shrink-0" aria-hidden="true" />
               Copilot has been assigned! It will start working shortly.
             </div>

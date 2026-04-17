@@ -12,7 +12,7 @@ function applyLinkification(
 ): string {
   let result = markdown;
   linkMap.forEach((info, url) => {
-    const label = `${info.title} (#${info.number})`;
+    const label = `${info.title} (${info.owner}/${info.repo}#${info.number})`;
     const escaped = url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     // Replace <url> autolinks (angle-bracket wrapped)
     result = result.replace(new RegExp(`<${escaped}>`, 'g'), `[${label}](${url})`);
@@ -23,8 +23,28 @@ function applyLinkification(
   return result;
 }
 
+// Matches bare Slack URLs: https://<workspace>.slack.com/... or https://app.slack.com/...
+// Excludes URLs already wrapped in a markdown link: [text](url)
+const SLACK_URL_RE = /(?<!\()(https:\/\/[a-zA-Z0-9-]+\.slack\.com\/[^\s)\]>]*)/g;
+
+/**
+ * Replace bare Slack URLs with [Slack link](url) markdown links.
+ * Handles both plain bare URLs and <url> angle-bracket autolinks.
+ */
+export function linkifySlackUrls(markdown: string): string {
+  // Replace <https://...slack.com/...> angle-bracket autolinks first
+  let result = markdown.replace(
+    /<(https:\/\/[a-zA-Z0-9-]+\.slack\.com\/[^\s>]*)>/g,
+    '[\[Slack link\]]($1)',
+  );
+  // Replace remaining bare Slack URLs not already inside a markdown link
+  result = result.replace(SLACK_URL_RE, '[\[Slack link\]]($1)');
+  return result;
+}
+
 /**
  * Call the Copilot SDK with a system prompt and user prompt, return the response.
+ * Combines both prompts into a single request to avoid a wasted round-trip.
  */
 export async function callCopilot(
   systemPrompt: string, 
@@ -32,12 +52,11 @@ export async function callCopilot(
   model: string = MODEL,
   timeout?: number,
 ): Promise<string> {
+  const combinedPrompt = `${systemPrompt}\n\n---\n\n${userPrompt}`;
   const client = new CopilotClient();
   try {
     const session = await client.createSession({ model });
-    // Send system context first, then user message
-    await session.sendAndWait({ prompt: systemPrompt }, timeout);
-    const response = await session.sendAndWait({ prompt: userPrompt }, timeout);
+    const response = await session.sendAndWait({ prompt: combinedPrompt }, timeout);
     return response?.data?.content ?? '';
   } finally {
     await client.stop();
@@ -63,5 +82,6 @@ export async function linkifyWorkLog(rawMarkdown: string): Promise<string> {
     if (info) linkMap.set(info.url, info);
   }
 
-  return applyLinkification(cleaned, linkMap);
+  const withGitHub = applyLinkification(cleaned, linkMap);
+  return linkifySlackUrls(withGitHub);
 }

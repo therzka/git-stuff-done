@@ -14,6 +14,7 @@ export type TodoItem = {
 export type AppConfig = {
   ignoredRepos: string[];
   preferredModel?: string;
+  fontSize: string;
 };
 
 // --- Paths ---
@@ -150,7 +151,7 @@ function configPath(): string {
   return path.join(dataDir(), "config.json");
 }
 
-const defaultConfig: AppConfig = { ignoredRepos: [] };
+const defaultConfig: AppConfig = { ignoredRepos: [], fontSize: '1' };
 
 export async function readConfig(): Promise<AppConfig> {
   try {

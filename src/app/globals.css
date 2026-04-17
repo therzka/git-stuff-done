@@ -34,6 +34,21 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+
+  /* Text sizes — scaled by --text-scale for user font-size preference */
+  --text-xs: calc(0.75rem * var(--text-scale, 1));
+  --text-xs--line-height: calc(1rem * var(--text-scale, 1));
+  --text-sm: calc(0.875rem * var(--text-scale, 1));
+  --text-sm--line-height: calc(1.25rem * var(--text-scale, 1));
+  --text-base: calc(1rem * var(--text-scale, 1));
+  --text-base--line-height: calc(1.5rem * var(--text-scale, 1));
+  --text-lg: calc(1.125rem * var(--text-scale, 1));
+  --text-lg--line-height: calc(1.75rem * var(--text-scale, 1));
+  --text-xl: calc(1.25rem * var(--text-scale, 1));
+  --text-xl--line-height: calc(1.75rem * var(--text-scale, 1));
 }
 
 :root {
@@ -68,6 +83,11 @@
   --border: oklch(87% 0.024 316);       /* Plum-tinted border */
   --input: oklch(87% 0.024 316);
   --ring: oklch(40% 0.19 316);
+
+  --success: oklch(45% 0.15 145);
+  --success-foreground: oklch(99% 0.005 145);
+
+  --text-scale: 1;
 
   /* Easing tokens */
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
@@ -108,6 +128,9 @@
   --input: oklch(25% 0.05 316);
   --ring: oklch(70% 0.22 316);
 
+  --success: oklch(60% 0.19 145);
+  --success-foreground: oklch(13% 0.04 145);
+
   /* Easing tokens */
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
@@ -134,7 +157,7 @@ pre {
   padding: 1rem;
   outline: none;
   min-height: 100%;
-  font-size: 0.875rem;
+  font-size: calc(0.875rem * var(--text-scale, 1));
   line-height: 1.625;
   color: var(--foreground);
 }
@@ -144,7 +167,7 @@ pre {
 }
 
 .tiptap-editor .tiptap h1 {
-  font-size: 1.25rem;
+  font-size: calc(1.25rem * var(--text-scale, 1));
   font-weight: 700;
   margin-top: 1rem;
   margin-bottom: 0.5rem;
@@ -152,7 +175,7 @@ pre {
 }
 
 .tiptap-editor .tiptap h2 {
-  font-size: 1.125rem;
+  font-size: calc(1.125rem * var(--text-scale, 1));
   font-weight: 700;
   margin-top: 0.75rem;
   margin-bottom: 0.5rem;
@@ -160,7 +183,7 @@ pre {
 }
 
 .tiptap-editor .tiptap h3 {
-  font-size: 1rem;
+  font-size: calc(1rem * var(--text-scale, 1));
   font-weight: 700;
   margin-top: 0.5rem;
   margin-bottom: 0.25rem;
@@ -195,6 +218,10 @@ pre {
   margin-bottom: 0;
 }
 
+.tiptap-editor .tiptap li pre {
+  margin: 0.25rem 0;
+}
+
 .tiptap-editor .tiptap a {
   color: var(--accent-foreground);
   text-decoration: underline;
@@ -223,7 +250,7 @@ pre {
   background-color: var(--muted);
   padding: 0.125rem 0.25rem;
   border-radius: 0.25rem;
-  font-size: 0.75rem;
+  font-size: calc(0.75rem * var(--text-scale, 1));
   font-family: var(--font-mono), ui-monospace, monospace;
   color: var(--foreground);
 }
@@ -234,7 +261,7 @@ pre {
   border-radius: 0.5rem;
   overflow-x: auto;
   margin: 0.5rem 0;
-  font-size: 0.75rem;
+  font-size: calc(0.75rem * var(--text-scale, 1));
   color: var(--foreground);
 }
 
@@ -294,6 +321,127 @@ pre {
   font-style: italic;
 }
 
+/* Inline image thumbnails */
+.tiptap-editor .tiptap .inline-image-node {
+  margin: 0.5rem 0;
+}
+
+.tiptap-editor .tiptap .inline-image-thumbnail {
+  max-height: 200px;
+  max-width: 100%;
+  width: auto;
+  height: auto;
+  border-radius: 0.375rem;
+  border: 1px solid var(--color-border);
+  cursor: pointer;
+  object-fit: contain;
+  transition: opacity 0.15s;
+}
+
+.tiptap-editor .tiptap .inline-image-thumbnail:hover {
+  opacity: 0.75;
+}
+
+/* Upload placeholder spinner card */
+.tiptap-editor .tiptap .upload-placeholder {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 0.875rem;
+  border-radius: 0.375rem;
+  border: 1px dashed var(--color-border);
+  background: var(--color-muted);
+  color: var(--color-muted-foreground);
+  font-size: 0.8125rem;
+  max-width: 200px;
+}
+
+/* Drop cursor indicator */
+.tiptap-drop-cursor {
+  color: var(--color-primary);
+}
+
+/* Images in the read-only markdown viewer */
+.markdown-viewer .tiptap img {
+  max-height: 200px;
+  max-width: 100%;
+  width: auto;
+  height: auto;
+  border-radius: 0.375rem;
+  border: 1px solid var(--color-border);
+  object-fit: contain;
+  margin: 0.5rem 0;
+}
+
+/* @mention nodes in the editor */
+.tiptap-editor .tiptap .mention-node {
+  font-weight: 700;
+  color: var(--primary);
+  background: var(--accent);
+  border-radius: 0.25rem;
+  padding: 0.0625rem 0.25rem;
+  text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.tiptap-editor .tiptap .mention-node:hover {
+  opacity: 0.8;
+}
+
+/* @mention suggestion dropdown */
+.mention-dropdown {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  padding: 0.25rem;
+  max-height: 240px;
+  overflow-y: auto;
+  min-width: 180px;
+}
+
+.mention-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.375rem 0.5rem;
+  border-radius: 0.375rem;
+  border: none;
+  background: transparent;
+  color: var(--foreground);
+  font-size: 0.8125rem;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.1s;
+}
+
+.mention-dropdown-item:hover,
+.mention-dropdown-item.is-selected {
+  background: var(--accent);
+}
+
+.mention-dropdown-hint {
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+.mention-avatar {
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 9999px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.mention-login {
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* Focus-visible indicators for keyboard navigation */
 button:focus-visible,
 a:focus-visible,
@@ -349,41 +497,41 @@ select:focus-visible {
 /* MarkdownViewer — read-only Tiptap for AI results */
 .markdown-viewer .tiptap {
   outline: none;
-  font-size: 0.875rem;
+  font-size: calc(0.875rem * var(--text-scale, 1));
   line-height: 1.625;
   color: var(--foreground);
 }
 
 .markdown-viewer .tiptap > * + * {
-  margin-top: 0.25em;
+  margin-top: 0.5em;
 }
 
 .markdown-viewer .tiptap h1 {
-  font-size: 1.125rem;
+  font-size: calc(1.125rem * var(--text-scale, 1));
   font-weight: 700;
-  margin-top: 0.75rem;
+  margin-top: 1rem;
   margin-bottom: 0.375rem;
   color: var(--primary);
 }
 
 .markdown-viewer .tiptap h2 {
-  font-size: 1rem;
+  font-size: calc(1rem * var(--text-scale, 1));
   font-weight: 700;
-  margin-top: 0.625rem;
+  margin-top: 0.875rem;
   margin-bottom: 0.375rem;
   color: color-mix(in srgb, var(--primary) 90%, transparent);
 }
 
 .markdown-viewer .tiptap h3 {
-  font-size: 0.9375rem;
+  font-size: calc(0.9375rem * var(--text-scale, 1));
   font-weight: 700;
-  margin-top: 0.5rem;
+  margin-top: 0.75rem;
   margin-bottom: 0.25rem;
   color: color-mix(in srgb, var(--primary) 80%, transparent);
 }
 
 .markdown-viewer .tiptap p {
-  margin-bottom: 0.375rem;
+  margin-bottom: 0.5rem;
   line-height: 1.625;
 }
 
@@ -391,14 +539,14 @@ select:focus-visible {
   list-style-type: disc;
   list-style-position: outside;
   padding-left: 1.25rem;
-  margin-bottom: 0.375rem;
+  margin-bottom: 0.5rem;
 }
 
 .markdown-viewer .tiptap ol {
   list-style-type: decimal;
   list-style-position: outside;
   padding-left: 1.25rem;
-  margin-bottom: 0.375rem;
+  margin-bottom: 0.5rem;
 }
 
 .markdown-viewer .tiptap li {
@@ -406,8 +554,16 @@ select:focus-visible {
   line-height: 1.625;
 }
 
+.markdown-viewer .tiptap li + li {
+  margin-top: 0.125rem;
+}
+
 .markdown-viewer .tiptap li p {
   margin-bottom: 0;
+}
+
+.markdown-viewer .tiptap li pre {
+  margin: 0.25rem 0;
 }
 
 .markdown-viewer .tiptap a {
@@ -427,25 +583,25 @@ select:focus-visible {
   padding-left: 1rem;
   font-style: italic;
   color: var(--muted-foreground);
-  margin: 0.375rem 0;
+  margin: 0.5rem 0;
 }
 
 .markdown-viewer .tiptap code {
-  background-color: var(--muted);
-  padding: 0.125rem 0.25rem;
+  background-color: color-mix(in srgb, var(--foreground) 8%, transparent);
+  padding: 0.125rem 0.375rem;
   border-radius: 0.25rem;
-  font-size: 0.75rem;
+  font-size: calc(0.75rem * var(--text-scale, 1));
   font-family: var(--font-mono), ui-monospace, monospace;
   color: var(--foreground);
 }
 
 .markdown-viewer .tiptap pre {
-  background-color: var(--muted);
-  padding: 0.5rem;
+  background-color: color-mix(in srgb, var(--foreground) 8%, transparent);
+  padding: 0.75rem;
   border-radius: 0.5rem;
   overflow-x: auto;
   margin: 0.375rem 0;
-  font-size: 0.75rem;
+  font-size: calc(0.75rem * var(--text-scale, 1));
   color: var(--foreground);
 }
 
