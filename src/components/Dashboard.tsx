@@ -12,13 +12,13 @@ import {
   useSensor,
   useSensors,
   closestCenter,
-  type DragEndEvent,
   type DragOverEvent,
   type DragStartEvent,
 } from '@dnd-kit/core';
 import {
   SortableContext,
   useSortable,
+  horizontalListSortingStrategy,
   verticalListSortingStrategy,
   arrayMove,
 } from '@dnd-kit/sortable';
@@ -36,7 +36,7 @@ import { GITHUB_ORG } from '@/lib/constants';
 import { DEMO_CONFIG } from '@/lib/demo';
 
 type PanelId = 'log' | 'todos' | 'prs' | 'issues' | 'notifs' | 'sessions';
-type LayoutMode = 'grid' | 'column';
+type LayoutMode = 'grid' | 'column' | 'row';
 
 const PANEL_LABELS: Record<PanelId, string> = {
   log: 'Work Log',
@@ -65,7 +65,8 @@ function loadFontScale(): string {
 
 function loadLayout(): LayoutMode {
   if (typeof window === 'undefined') return 'grid';
-  return (localStorage.getItem('gsd-layout') as LayoutMode) || 'grid';
+  const stored = localStorage.getItem('gsd-layout');
+  return stored === 'grid' || stored === 'column' || stored === 'row' ? stored : 'grid';
 }
 function loadVisiblePanels(): Set<PanelId> {
   if (typeof window === 'undefined') return new Set(ALL_PANELS);
@@ -132,6 +133,7 @@ export default function Dashboard() {
   const [showSummaries, setShowSummaries] = useState(false);
   const insertAtCursorRef = useRef<((text: string) => void) | null>(null);
   const commitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [isNarrowLayout, setIsNarrowLayout] = useState(false);
 
   // Layout & panel visibility
   const [layout, setLayout] = useState<LayoutMode>(loadLayout);
@@ -153,8 +155,9 @@ export default function Dashboard() {
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   );
 
-  function toggleLayout() {
-    const next: LayoutMode = layout === 'grid' ? 'column' : 'grid';
+  const effectiveLayout: LayoutMode = isNarrowLayout && layout !== 'column' ? 'column' : layout;
+
+  function setLayoutMode(next: LayoutMode) {
     setLayout(next);
     localStorage.setItem('gsd-layout', next);
   }
@@ -199,7 +202,7 @@ export default function Dashboard() {
     });
 
     // Cross-column: update live side assignment
-    if (layout === 'grid') {
+    if (effectiveLayout === 'grid') {
       setLivePanelSide((prev) => {
         const sides = prev ?? panelSide;
         if (sides[activeId] === sides[overId]) return prev;
@@ -208,7 +211,7 @@ export default function Dashboard() {
     }
   }
 
-  function handleDragEnd(_event: DragEndEvent) {
+  function handleDragEnd() {
     const finalOrder = livePanelOrder ?? panelOrder;
     const finalSide = livePanelSide ?? panelSide;
 
@@ -235,17 +238,15 @@ export default function Dashboard() {
     setLivePanelSide(null);
   }
 
-  // Auto-switch to column layout on narrow screens
+  // Collapse non-column layouts on narrow screens while preserving preference.
   useEffect(() => {
     function handleResize() {
-      if (window.innerWidth < 1024 && layout === 'grid') {
-        setLayout('column');
-      }
+      setIsNarrowLayout(window.innerWidth < 1024);
     }
     handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, [layout]);
+  }, []);
   useEffect(() => {
     function handleClick(e: MouseEvent) {
       if (
@@ -454,14 +455,36 @@ export default function Dashboard() {
           >
             <Settings className="h-4 w-4" aria-hidden="true" />
           </button>
-          <button
-            onClick={toggleLayout}
-            className="rounded-lg px-2 py-1.5 text-sm text-muted-foreground transition hover:bg-accent hover:text-accent-foreground"
-            aria-label="Toggle layout"
-            title={layout === 'grid' ? 'Switch to column layout' : 'Switch to grid layout'}
-          >
-            {layout === 'grid' ? <LayoutGrid className="h-4 w-4" aria-hidden="true" /> : <LayoutList className="h-4 w-4" aria-hidden="true" />}
-          </button>
+          <div className="inline-flex items-center rounded-xl border border-border bg-muted/40 p-0.5">
+            <button
+              onClick={() => setLayoutMode('grid')}
+              className={`rounded-lg px-2 py-1.5 text-sm transition ${layout === 'grid' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'}`}
+              aria-label="Grid layout"
+              title={isNarrowLayout ? 'Grid layout is temporarily shown as column below 1024px' : 'Grid layout'}
+            >
+              <LayoutGrid className="h-4 w-4" aria-hidden="true" />
+            </button>
+            <button
+              onClick={() => setLayoutMode('column')}
+              className={`rounded-lg px-2 py-1.5 text-sm transition ${layout === 'column' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'}`}
+              aria-label="Column layout"
+              title="Column layout"
+            >
+              <LayoutList className="h-4 w-4" aria-hidden="true" />
+            </button>
+            <button
+              onClick={() => setLayoutMode('row')}
+              className={`rounded-lg px-2 py-1.5 text-sm transition ${layout === 'row' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'}`}
+              aria-label="Row layout"
+              title={isNarrowLayout ? 'Row layout is temporarily shown as column below 1024px' : 'Row layout'}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.75" className="h-4 w-4" aria-hidden="true">
+                <rect x="2.5" y="4" width="4" height="12" rx="1.25" />
+                <rect x="8" y="4" width="4" height="12" rx="1.25" />
+                <rect x="13.5" y="4" width="4" height="12" rx="1.25" />
+              </svg>
+            </button>
+          </div>
           <button
             ref={panelMenuBtnRef}
             onClick={() => {
@@ -687,7 +710,7 @@ export default function Dashboard() {
     // Stable PanelGroup key: sorted IDs so reordering doesn't unmount the group
     const stableKey = [...visible].sort().join(',');
 
-    if (layout === 'column') {
+    if (effectiveLayout === 'column') {
       const minHeightPx = visible.length * 400;
       return (
         <DndContext sensors={dndSensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd} onDragCancel={handleDragCancel}>
@@ -718,6 +741,36 @@ export default function Dashboard() {
       );
     }
 
+    if (effectiveLayout === 'row') {
+      const minPanelWidthPx = 320;
+      return (
+        <DndContext sensors={dndSensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd} onDragCancel={handleDragCancel}>
+          <SortableContext items={visible} strategy={horizontalListSortingStrategy}>
+            <div className="min-w-0 flex-1 overflow-x-auto overflow-y-hidden">
+              <PanelGroup
+                key={`row-${stableKey}`}
+                orientation="horizontal"
+                className="min-h-0 h-full p-3"
+                style={{ height: '100%', minWidth: visible.length * minPanelWidthPx }}
+              >
+                {visible.map((id, i) => (
+                  <Fragment key={id}>
+                    {i > 0 && <PanelResizeHandle className="mx-1 w-1.5 rounded-full transition hover:bg-accent active:bg-primary/50" />}
+                    <Panel id={id} defaultSize={100 / visible.length} minSize={12}>
+                      <SortablePanelWrapper id={id} isDragging={activeDragId === id}>
+                        {(dragHandleProps) => panelContent(id, dragHandleProps)}
+                      </SortablePanelWrapper>
+                    </Panel>
+                  </Fragment>
+                ))}
+              </PanelGroup>
+            </div>
+          </SortableContext>
+          {renderDragOverlay()}
+        </DndContext>
+      );
+    }
+
     // Grid layout: derive left/right from renderSide, respecting renderOrder
     const leftPanels = visible.filter((id) => renderSide[id] === 'left');
     const rightPanels = visible.filter((id) => renderSide[id] === 'right');
@@ -735,7 +788,7 @@ export default function Dashboard() {
         );
       }
       return (
-        <PanelGroup key={`col-${colKey}`} orientation="vertical" className="h-full">
+        <PanelGroup key={`col-${colKey}`} orientation="vertical" className="h-full" style={{ height: '100%' }}>
           {panels.map((id, i) => (
             <Fragment key={id}>
               {i > 0 && <PanelResizeHandle className="my-1 h-1.5 rounded-full transition hover:bg-accent active:bg-primary/50" />}
@@ -751,8 +804,6 @@ export default function Dashboard() {
     }
 
     // Single SortableContext with ALL visible panels so cross-column drag works.
-    const leftKey = [...leftPanels].sort().join(',');
-    const rightKey = [...rightPanels].sort().join(',');
     const gridContent = leftPanels.length === 0 ? (
       <PanelGroup key={`grid-r-${stableKey}`} orientation="vertical" className="min-h-0 flex-1 p-3">
         {rightPanels.map((id, i) => (
