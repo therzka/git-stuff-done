@@ -1,8 +1,23 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { ClipboardList, Sparkles, X, Target } from "lucide-react";
+import { ClipboardList, Sparkles, X, Target, GripVertical } from "lucide-react";
 import { DEMO_TODOS, DEMO_SUGGESTED_TODOS } from "@/lib/demo";
+import {
+  DndContext,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 /** Render text with bare URLs and markdown links as clickable <a> tags */
 function LinkifiedText({ text, className }: { text: string; className?: string }) {
@@ -40,11 +55,111 @@ type TodoItem = {
   createdAt: string;
 };
 
+type SortableTodoItemProps = {
+  todo: TodoItem;
+  editingId: string | null;
+  editingTitle: string;
+  onStartEdit: (todo: TodoItem) => void;
+  onCommitEdit: (id: string) => void;
+  onCancelEdit: () => void;
+  onEditTitleChange: (v: string) => void;
+  onToggle: (id: string, done: boolean) => void;
+  onDelete: (id: string) => void;
+};
+
+function SortableTodoItem({
+  todo,
+  editingId,
+  editingTitle,
+  onStartEdit,
+  onCommitEdit,
+  onCancelEdit,
+  onEditTitleChange,
+  onToggle,
+  onDelete,
+}: SortableTodoItemProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: todo.id });
+
+  const style = {
+    transform: CSS.Translate.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : undefined,
+  };
+
+  return (
+    <li
+      ref={setNodeRef}
+      style={style}
+      className={`group flex items-center gap-2 rounded-xl px-2 py-1.5 transition hover:bg-accent/50 ${
+        todo.done ? "opacity-50" : ""
+      }`}
+    >
+      <button
+        {...attributes}
+        {...listeners}
+        aria-label="Drag to reorder"
+        className="shrink-0 cursor-grab touch-none text-muted-foreground opacity-0 transition hover:text-foreground group-hover:opacity-100 active:cursor-grabbing"
+      >
+        <GripVertical className="h-4 w-4" aria-hidden="true" />
+      </button>
+
+      <input
+        type="checkbox"
+        checked={todo.done}
+        onChange={() => onToggle(todo.id, !todo.done)}
+        className="h-5 w-5 shrink-0 accent-primary rounded border-input"
+      />
+
+      {editingId === todo.id ? (
+        <input
+          autoFocus
+          type="text"
+          value={editingTitle}
+          onChange={(e) => onEditTitleChange(e.target.value)}
+          onBlur={() => onCommitEdit(todo.id)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") onCommitEdit(todo.id);
+            if (e.key === "Escape") onCancelEdit();
+          }}
+          className="flex-1 rounded-lg border border-input bg-background px-2 py-0.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring/20"
+        />
+      ) : (
+        <span
+          onDoubleClick={() => !todo.done && onStartEdit(todo)}
+          className={`flex-1 min-w-0 cursor-text text-sm break-words ${todo.done ? "line-through text-muted-foreground opacity-50" : ""}`}
+          title="Double-click to edit"
+        >
+          <LinkifiedText text={todo.title} className="text-foreground" />
+        </span>
+      )}
+
+      {todo.source === "suggested" && (
+        <span className="shrink-0 text-[10px] font-medium text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">
+          AI
+        </span>
+      )}
+
+      <button
+        onClick={() => onDelete(todo.id)}
+        className="shrink-0 text-muted-foreground opacity-0 transition hover:text-destructive group-hover:opacity-100"
+        aria-label="Delete"
+      >
+        <X className="h-4 w-4" aria-hidden="true" />
+      </button>
+    </li>
+  );
+}
+
 export default function TodoList({ date, isDemo = false }: { date?: string, isDemo?: boolean }) {
   const [todos, setTodos] = useState<TodoItem[]>([]);
   const [input, setInput] = useState("");
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [suggesting, setSuggesting] = useState(false);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+  );
 
   const fetchTodos = useCallback(async () => {
     if (isDemo) {
@@ -169,6 +284,22 @@ export default function TodoList({ date, isDemo = false }: { date?: string, isDe
 
   const cancelEdit = () => setEditingId(null);
 
+  const reorderTodos = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = todos.findIndex((t) => t.id === active.id);
+    const newIndex = todos.findIndex((t) => t.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+    const reordered = arrayMove(todos, oldIndex, newIndex);
+    setTodos(reordered);
+    if (isDemo) return;
+    await fetch("/api/todos", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reorder: true, ids: reordered.map((t) => t.id) }),
+    });
+  };
+
   const dismissSuggestion = (title: string) => {
     setSuggestions((prev) => prev.filter((s) => s !== title));
   };
@@ -248,58 +379,26 @@ export default function TodoList({ date, isDemo = false }: { date?: string, isDe
               <Target className="h-4 w-4" aria-hidden="true" /> No todos yet
             </div>
           ) : (
-            <ul className="space-y-1">
-              {todos.map((todo) => (
-                <li
-                  key={todo.id}
-                  className={`group flex items-center gap-2 rounded-xl px-2 py-1.5 transition hover:bg-accent/50 ${
-                    todo.done ? "opacity-50" : ""
-                  }`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={todo.done}
-                    onChange={() => toggleTodo(todo.id, !todo.done)}
-                    className="h-5 w-5 shrink-0 accent-primary rounded border-input"
-                  />
-
-                  {editingId === todo.id ? (
-                    <input
-                      autoFocus
-                      type="text"
-                      value={editingTitle}
-                      onChange={(e) => setEditingTitle(e.target.value)}
-                      onBlur={() => commitEdit(todo.id)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") commitEdit(todo.id);
-                        if (e.key === "Escape") cancelEdit();
-                      }}
-                      className="flex-1 rounded-lg border border-input bg-background px-2 py-0.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring/20"
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={reorderTodos}>
+              <SortableContext items={todos.map((t) => t.id)} strategy={verticalListSortingStrategy}>
+                <ul className="space-y-1">
+                  {todos.map((todo) => (
+                    <SortableTodoItem
+                      key={todo.id}
+                      todo={todo}
+                      editingId={editingId}
+                      editingTitle={editingTitle}
+                      onStartEdit={startEdit}
+                      onCommitEdit={commitEdit}
+                      onCancelEdit={cancelEdit}
+                      onEditTitleChange={setEditingTitle}
+                      onToggle={toggleTodo}
+                      onDelete={deleteTodo}
                     />
-                  ) : (
-                    <span
-                      onDoubleClick={() => !todo.done && startEdit(todo)}
-                      className={`flex-1 min-w-0 cursor-text text-sm break-words ${todo.done ? "line-through text-muted-foreground opacity-50" : ""}`}
-                      title="Double-click to edit"
-                    >
-                      <LinkifiedText text={todo.title} className="text-foreground" />
-                    </span>
-                  )}
-
-                  {todo.source === 'suggested' && (
-                    <span className="shrink-0 text-[10px] font-medium text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">AI</span>
-                  )}
-
-                  <button
-                    onClick={() => deleteTodo(todo.id)}
-                    className="shrink-0 text-muted-foreground opacity-0 transition hover:text-destructive group-hover:opacity-100"
-                    aria-label="Delete"
-                  >
-                    <X className="h-4 w-4" aria-hidden="true" />
-                  </button>
-                </li>
-              ))}
-            </ul>
+                  ))}
+                </ul>
+              </SortableContext>
+            </DndContext>
           )}
         </div>
       </div>

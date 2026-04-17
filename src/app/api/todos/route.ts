@@ -25,13 +25,31 @@ export async function POST(req: Request) {
 }
 
 export async function PUT(req: Request) {
-  const { id, done, title, source } = (await req.json()) as {
-    id: string;
+  const body = (await req.json()) as {
+    reorder?: boolean;
+    ids?: string[];
+    id?: string;
     done?: boolean;
     title?: string;
     source?: "manual" | "suggested";
   };
+
   const todos = await readTodos();
+
+  if (body.reorder && Array.isArray(body.ids)) {
+    const idOrder = body.ids;
+    const reordered = idOrder
+      .map((id) => todos.find((t) => t.id === id))
+      .filter((t): t is TodoItem => t !== undefined);
+    // Append any todos not included in the reorder payload (safety net)
+    const included = new Set(idOrder);
+    const rest = todos.filter((t) => !included.has(t.id));
+    await writeTodos([...reordered, ...rest]);
+    return NextResponse.json([...reordered, ...rest]);
+  }
+
+  const { id, done, title, source } = body;
+  if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
   const todo = todos.find((t) => t.id === id);
   if (!todo) return NextResponse.json({ error: "Not found" }, { status: 404 });
   if (done !== undefined) todo.done = done;
