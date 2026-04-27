@@ -23,6 +23,7 @@ type PullRequest = {
   mergeQueueState: "queued" | "merging" | null;
   authorLogin: string;
   isAssignee: boolean;
+  branchName: string;
 };
 
 function timeAgo(dateString: string): string {
@@ -213,14 +214,19 @@ export default function MyPRs({
                         {timeAgo(pr.updatedAt)}
                       </span>
                     </div>
-                    <div className="mt-1 flex items-center gap-3">
-                      <span className="text-xs text-muted-foreground">
+                    <div className="mt-1 flex items-center gap-1.5 flex-wrap">
+                      <span className="rounded-full bg-secondary px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
                         {pr.repoFullName}#{pr.number}
                       </span>
-                      <span className="text-xs text-emerald-500">
+                      {pr.branchName && (
+                        <span className="rounded-full bg-secondary px-1.5 py-0.5 text-[10px] font-semibold font-mono text-muted-foreground truncate max-w-[320px] hover:max-w-none hover:z-10 hover:ring-1 hover:ring-ring transition-all" title={pr.branchName}>
+                          {pr.branchName}
+                        </span>
+                      )}
+                      <span className="rounded-full bg-success/10 px-1.5 py-0.5 text-[10px] font-semibold text-success">
                         +{pr.additions}
                       </span>
-                      <span className="text-xs text-destructive">
+                      <span className="rounded-full bg-destructive/10 px-1.5 py-0.5 text-[10px] font-semibold text-destructive">
                         -{pr.deletions}
                       </span>
                     </div>

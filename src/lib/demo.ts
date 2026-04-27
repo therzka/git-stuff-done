@@ -164,6 +164,7 @@ export const DEMO_PRS = [
     mergeQueueState: "merging" as const,
     authorLogin: "user",
     isAssignee: false,
+    branchName: "feat/user-settings-page",
   },
   {
     id: 102,
@@ -183,6 +184,7 @@ export const DEMO_PRS = [
     mergeQueueState: null,
     authorLogin: "Copilot",
     isAssignee: true,
+    branchName: "fix/login-redirect-loop",
   },
   {
     id: 103,
@@ -202,6 +204,7 @@ export const DEMO_PRS = [
     mergeQueueState: null,
     authorLogin: "user",
     isAssignee: false,
+    branchName: "chore/update-ci-node-22",
   },
 ];
 

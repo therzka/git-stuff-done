@@ -162,6 +162,7 @@ export type MyPullRequest = {
   mergeQueueState: "queued" | "merging" | null;
   authorLogin: string;
   isAssignee: boolean;
+  branchName: string;
 };
 
 export async function fetchMyPRs(): Promise<MyPullRequest[]> {
@@ -212,7 +213,8 @@ export async function fetchMyPRs(): Promise<MyPullRequest[]> {
         const repo = urlParts[urlParts.length - 1];
         let additions = 0,
           deletions = 0,
-          draft = false;
+          draft = false,
+          branchName = "";
         try {
           const { data: pr } = await octokit.pulls.get({
             owner,
@@ -222,6 +224,7 @@ export async function fetchMyPRs(): Promise<MyPullRequest[]> {
           additions = pr.additions;
           deletions = pr.deletions;
           draft = pr.draft ?? false;
+          branchName = pr.head?.ref ?? "";
         } catch {
           /* ignore */
         }
@@ -243,6 +246,7 @@ export async function fetchMyPRs(): Promise<MyPullRequest[]> {
           mergeQueueState: null as MyPullRequest["mergeQueueState"],
           authorLogin: item.user?.login ?? "",
           isAssignee: item.assignees?.some((a) => a.login === user) ?? false,
+          branchName,
         };
       }),
   );
