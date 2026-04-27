@@ -75,8 +75,13 @@ export default function MyIssues({
       abortRef.current = controller;
       const res = await fetch("/api/issues", { signal: controller.signal });
       const data: Issue[] = await res.json();
-      setIssues(data);
-      _issueCache = data;
+      // Don't clobber cached data with empty arrays — see MyPRs for rationale.
+      if (data.length === 0 && _issueCache && _issueCache.length > 0) {
+        console.log("[MyIssues] Ignoring empty response; keeping cached", _issueCache.length, "issues");
+      } else {
+        setIssues(data);
+        _issueCache = data;
+      }
     } catch (err) {
       if (err instanceof Error && err.name === "AbortError") return;
     } finally {

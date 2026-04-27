@@ -70,8 +70,15 @@ export default function MyPRs({
       abortRef.current = controller;
       const res = await fetch("/api/prs", { signal: controller.signal });
       const data: PullRequest[] = await res.json();
-      setPrs(data);
-      _prCache = data;
+      // Don't clobber cached data with empty arrays — GitHub Search has known
+      // incidents that produce spurious zeros. If we already have data, treat
+      // an empty response as transient and keep what we had.
+      if (data.length === 0 && _prCache && _prCache.length > 0) {
+        console.log("[MyPRs] Ignoring empty response; keeping cached", _prCache.length, "PRs");
+      } else {
+        setPrs(data);
+        _prCache = data;
+      }
     } catch (err) {
       if (err instanceof Error && err.name === "AbortError") return;
       // keep existing data on error
