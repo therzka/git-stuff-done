@@ -57,11 +57,15 @@ export default function MyIssues({
   const [showLabels, setShowLabels] = useState(false);
   const [copilotIssue, setCopilotIssue] = useState<Issue | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const isDemoRef = useRef(isDemo);
+
+  // Keep isDemo ref in sync so refresh can stay stable (empty deps)
+  isDemoRef.current = isDemo;
 
   const refresh = useCallback(async (showLoading = false) => {
     if (showLoading) setLoading(true);
     try {
-      if (isDemo) {
+      if (isDemoRef.current) {
         setIssues(DEMO_ISSUES);
         setLoading(false);
         return;
@@ -78,9 +82,9 @@ export default function MyIssues({
     } finally {
       setLoading(false);
     }
-  }, [isDemo]);
+  }, []);
 
-  // Initial fetch shows loading only if cache is empty
+  // Initial fetch shows loading only if cache is empty — run once
   useEffect(() => {
     refresh(_issueCache === null);
   }, [refresh]);

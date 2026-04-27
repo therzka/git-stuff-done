@@ -52,11 +52,15 @@ export default function MyPRs({
   const [prs, setPrs] = useState<PullRequest[]>(_prCache ?? []);
   const [loading, setLoading] = useState(_prCache === null);
   const abortRef = useRef<AbortController | null>(null);
+  const isDemoRef = useRef(isDemo);
+
+  // Keep isDemo ref in sync so refresh can stay stable (empty deps)
+  isDemoRef.current = isDemo;
 
   const refresh = useCallback(async (showLoading = false) => {
     if (showLoading) setLoading(true);
     try {
-      if (isDemo) {
+      if (isDemoRef.current) {
         setPrs(DEMO_PRS);
         setLoading(false);
         return;
@@ -74,9 +78,9 @@ export default function MyPRs({
     } finally {
       setLoading(false);
     }
-  }, [isDemo]);
+  }, []);
 
-  // Initial fetch shows loading only if cache is empty
+  // Initial fetch shows loading only if cache is empty — run once
   useEffect(() => {
     refresh(_prCache === null);
   }, [refresh]);
