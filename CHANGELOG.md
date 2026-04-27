@@ -2,7 +2,110 @@
 
 All notable changes to git-stuff-done are documented here.
 
-## [Unreleased] — 2026-03-23
+## 2026-04-27
+
+### Added
+- **PR branch name** displayed in the My PRs panel as a pill badge alongside the repo, PR number, and line change counts
+
+### Fixed
+- Stabilized refresh callbacks in My PRs and My Issues panels using `isDemoRef` pattern to prevent duplicate fetches on remount
+- Coalesced concurrent `/api/prs` and `/api/issues` requests server-side so rapid panel switches share one in-flight request instead of firing multiple
+- Serialized authored/assigned GitHub Search API calls and added retry-on-zero to handle spurious empty responses during GitHub Search incidents
+- Preserved cached PR/issue data when the API returns an empty result set, preventing panels from incorrectly clearing while GitHub Search is degraded
+
+### Changed
+- My Issues panel: open PR pills now use GitHub's green (`#1F883D`), merged PR pills use GitHub's purple (`#8250DF`)
+- Copilot badge on issues renamed to "Assigned to Copilot" and restyled to neutral gray
+
+---
+
+## 2026-04-17
+
+### Added
+- **Widescreen row layout mode** — panels arrange horizontally in a single row on wide displays; toggle via layout menu
+
+### Changed
+- **Facelift** — replaced purple theme with a cool blue-teal color palette across the entire dashboard
+- Pointer cursor on interactive buttons; bolder date header typography
+
+---
+
+## 2026-04-16
+
+### Added
+- **Drag-to-reorder todos** — grab any TODO item and drag it to reorder within the list
+
+### Fixed
+- Used `CSS.Translate` instead of `CSS.Transform` during drag to prevent text scaling artifacts
+
+---
+
+## 2026-04-15
+
+### Added
+- Bare Slack URLs pasted into the log editor are automatically linkified as `[Slack link](url)`
+
+---
+
+## 2026-04-08
+
+### Fixed
+- Pressing Space at the end of a link no longer stays inside the link mark; cursor correctly escapes to plain text
+
+---
+
+## 2026-04-07
+
+### Added
+- **Image support** — drag-and-drop or paste images directly into the Work Log editor; images are stored in `attachments/YYYY-MM-DD/`
+- **Code fencing** — triple-backtick code blocks rendered in the editor with monospace styling
+
+---
+
+## 2026-04-03
+
+### Added
+- **Drag-and-drop panel reordering** — grab any panel by its title bar and drag it to a new position; order persists to `localStorage`
+- Infinite scroll height in column layout mode
+
+### Fixed
+- Grip icon replaces invisible drag overlay for clearer affordance
+- Single `SortableContext` for cross-column drag; reset button restores default panel order
+- Drag handle restricted to title bar only; grab cursor removed from panel card body
+
+---
+
+## 2026-04-01
+
+### Added
+- **Slack thread viewer** — click a Slack link in the log to open a rich-text modal preview of the thread; available in demo mode
+- `@mention` autocomplete for GitHub org members in the Work Log editor
+
+### Changed
+- PR/issue cross-references unified to `Title (owner/repo#number)` format
+
+---
+
+## 2026-03-25
+
+### Added
+- AI search results can be saved and downloaded; saved results visible in the Summaries modal
+
+---
+
+## 2026-03-24
+
+### Changed
+- Agent Sessions panel now only shows sessions with a linked PR
+- Agent Sessions: PR state pills (open/merged/closed), title links to Copilot agent task page; merged PRs filtered out by default
+- Neutral color used for open/draft PR pills
+
+### Fixed
+- Draft PR sessions now visible; fixed null `pullRequestUrl` crash
+
+---
+
+## 2026-03-23
 
 ### Added
 - **Agent Sessions panel** — shows Copilot coding agent tasks from GitHub via `gh agent-task list`; sessions grouped by date with PR badges (open/merged/closed), state indicators (running/timed out), and hover-to-insert into Work Log; hidden by default, enabled via panel menu
