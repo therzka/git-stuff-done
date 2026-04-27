@@ -41,6 +41,24 @@ export async function getOctokit(): Promise<Octokit> {
   return cachedOctokit;
 }
 
+// Retry a Search API call once if it returns total_count: 0. GitHub Search has
+// known incidents where the lexical backend returns spurious zeros; a single
+// retry after a short delay materially improves reliability without making the
+// genuinely-empty case much slower.
+async function searchWithRetryOnZero<
+  T extends { data: { total_count: number; items: unknown[] } },
+>(label: string, fn: () => Promise<T>): Promise<T> {
+  const first = await fn();
+  if (first.data.total_count > 0) return first;
+  await new Promise((r) => setTimeout(r, 500));
+  const retry = await fn();
+  if (retry.data.total_count > 0) {
+    console.log(`[github] ${label}: retry returned`, retry.data.total_count, "(first was 0)");
+    return retry;
+  }
+  return first;
+}
+
 // --- Issue / PR detail fetching ---
 
 export type GitHubLinkInfo = {
@@ -166,26 +184,34 @@ export type MyPullRequest = {
 };
 
 export async function fetchMyPRs(): Promise<MyPullRequest[]> {
+  console.log("[github] fetchMyPRs: Starting fetch");
   const octokit = await getOctokit();
   const config = await readConfig();
   const { data: userData } = await octokit.users.getAuthenticated();
   const user = userData.login;
+  console.log("[github] fetchMyPRs: User =", user, "Org =", GITHUB_ORG);
 
-  // Fetch PRs authored by and assigned to the user (two queries, deduplicated)
-  const [authoredRes, assignedRes] = await Promise.all([
+  // Fetch PRs authored by and assigned to the user (two queries, deduplicated).
+  // Run sequentially: GitHub's Search API silently returns 0 results when hit
+  // with concurrent calls from the same token. Retry-on-zero compensates for
+  // GitHub Search incidents that yield spurious empty responses.
+  const authoredRes = await searchWithRetryOnZero("fetchMyPRs authored", () =>
     octokit.search.issuesAndPullRequests({
       q: `is:pr is:open author:${user} org:${GITHUB_ORG}`,
       sort: "updated",
       order: "desc",
       per_page: 30,
     }),
+  );
+  const assignedRes = await searchWithRetryOnZero("fetchMyPRs assigned", () =>
     octokit.search.issuesAndPullRequests({
       q: `is:pr is:open assignee:${user} org:${GITHUB_ORG}`,
       sort: "updated",
       order: "desc",
       per_page: 30,
     }),
-  ]);
+  );
+  console.log("[github] fetchMyPRs: Authored =", authoredRes.data.items.length, "Assigned =", assignedRes.data.items.length);
 
   // Deduplicate by ID and sort by updatedAt
   const seenIds = new Set<number>();
@@ -427,17 +453,22 @@ export type MyIssue = {
 };
 
 export async function fetchMyIssues(): Promise<MyIssue[]> {
+  console.log("[github] fetchMyIssues: Starting fetch");
   const octokit = await getOctokit();
   const config = await readConfig();
   const { data: userData } = await octokit.users.getAuthenticated();
   const user = userData.login;
+  console.log("[github] fetchMyIssues: User =", user, "Org =", GITHUB_ORG);
 
-  const res = await octokit.search.issuesAndPullRequests({
-    q: `is:issue is:open assignee:${user} org:${GITHUB_ORG}`,
-    sort: "updated",
-    order: "desc",
-    per_page: 30,
-  });
+  const res = await searchWithRetryOnZero("fetchMyIssues", () =>
+    octokit.search.issuesAndPullRequests({
+      q: `is:issue is:open assignee:${user} org:${GITHUB_ORG}`,
+      sort: "updated",
+      order: "desc",
+      per_page: 30,
+    }),
+  );
+  console.log("[github] fetchMyIssues: Found", res.data.items.length, "issues");
 
   const issues: MyIssue[] = res.data.items
     .filter((item) => {
