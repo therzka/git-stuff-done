@@ -209,22 +209,22 @@ export default function MyPRs({
                         )}
                         {!pr.draft &&
                           pr.reviewDecision === "REVIEW_REQUIRED" && (
-                            <span className="mr-1.5 rounded-full bg-orange-50 px-1.5 py-0.5 text-[10px] font-semibold text-orange-700 ring-1 ring-inset ring-orange-600/20 dark:bg-orange-500/10 dark:text-orange-400 dark:ring-orange-500/20">
+                            <span className="mr-1.5 rounded-full bg-warning/10 px-1.5 py-0.5 text-[10px] font-semibold text-warning-foreground">
                               NEEDS REVIEW
                             </span>
                           )}
                         {pr.reviewDecision === "APPROVED" && (
-                          <span className="mr-1.5 rounded-full bg-green-50 px-1.5 py-0.5 text-[10px] font-semibold text-green-700 ring-1 ring-inset ring-green-600/20 dark:bg-green-500/10 dark:text-green-400 dark:ring-green-500/20">
+                          <span className="mr-1.5 rounded-full bg-success/10 px-1.5 py-0.5 text-[10px] font-semibold text-success">
                             APPROVED
                           </span>
                         )}
                         {pr.reviewDecision === "CHANGES_REQUESTED" && (
-                          <span className="mr-1.5 rounded-full bg-red-50 px-1.5 py-0.5 text-[10px] font-semibold text-red-700 ring-1 ring-inset ring-red-600/20 dark:bg-red-500/10 dark:text-red-400 dark:ring-red-500/20">
+                          <span className="mr-1.5 rounded-full bg-destructive/10 px-1.5 py-0.5 text-[10px] font-semibold text-destructive">
                             CHANGES REQUESTED
                           </span>
                         )}
                         {pr.unresolvedThreads > 0 && (
-                          <span className="mr-1.5 rounded-full bg-sky-50 px-1.5 py-0.5 text-[10px] font-semibold text-sky-700 ring-1 ring-inset ring-sky-600/20 dark:bg-sky-500/10 dark:text-sky-400 dark:ring-sky-500/20">
+                          <span className="mr-1.5 rounded-full bg-accent px-1.5 py-0.5 text-[10px] font-semibold text-accent-foreground">
                             {pr.unresolvedThreads} COMMENT
                             {pr.unresolvedThreads !== 1 ? "S" : ""}
                           </span>
