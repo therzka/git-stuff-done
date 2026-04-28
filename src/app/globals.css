@@ -54,24 +54,24 @@
 :root {
   /* Light Mode — cool neutral surfaces, blue-teal primary */
   --background: oklch(96.5% 0.003 250); /* Cool off-white */
-  --foreground: oklch(18% 0.008 250);   /* Near-black, neutral */
+  --foreground: oklch(18% 0.008 250); /* Near-black, neutral */
 
-  --card: oklch(99.5% 0 0);             /* Near-pure white */
+  --card: oklch(99.5% 0 0); /* Near-pure white */
   --card-foreground: oklch(18% 0.008 250);
 
   --popover: oklch(99.5% 0 0);
   --popover-foreground: oklch(18% 0.008 250);
 
-  --primary: oklch(42% 0.09 192);       /* Blue-teal — confident but not electric */
+  --primary: oklch(42% 0.09 192); /* Blue-teal — confident but not electric */
   --primary-foreground: oklch(99% 0.003 192);
 
-  --secondary: oklch(94% 0.004 250);    /* Soft cool gray */
+  --secondary: oklch(94% 0.004 250); /* Soft cool gray */
   --secondary-foreground: oklch(25% 0.01 250);
 
   --muted: oklch(93.5% 0.003 250);
   --muted-foreground: oklch(50% 0.01 250);
 
-  --accent: oklch(91% 0.035 192);       /* Light teal wash — reads as interactive */
+  --accent: oklch(91% 0.035 192); /* Light teal wash — reads as interactive */
   --accent-foreground: oklch(35% 0.09 192);
 
   --destructive: oklch(55% 0.22 25);
@@ -80,7 +80,7 @@
   --warning: oklch(68% 0.16 75);
   --warning-foreground: oklch(20% 0.05 75);
 
-  --border: oklch(89% 0.005 250);       /* Cool neutral border */
+  --border: oklch(89% 0.005 250); /* Cool neutral border */
   --input: oklch(89% 0.005 250);
   --ring: oklch(42% 0.09 192);
 
@@ -97,16 +97,16 @@
 
 .dark {
   /* Dark Mode — cool charcoal, 3-tier surface depth */
-  --background: oklch(14% 0.006 250);   /* Deep cool charcoal */
-  --foreground: oklch(96% 0.003 250);   /* Cool off-white */
+  --background: oklch(14% 0.006 250); /* Deep cool charcoal */
+  --foreground: oklch(96% 0.003 250); /* Cool off-white */
 
-  --card: oklch(19% 0.008 250);         /* Elevated surface */
+  --card: oklch(19% 0.008 250); /* Elevated surface */
   --card-foreground: oklch(96% 0.003 250);
 
-  --popover: oklch(23% 0.01 250);       /* Highest surface — popovers, modals */
+  --popover: oklch(23% 0.01 250); /* Highest surface — popovers, modals */
   --popover-foreground: oklch(96% 0.003 250);
 
-  --primary: oklch(68% 0.12 192);       /* Vibrant blue-teal */
+  --primary: oklch(68% 0.12 192); /* Vibrant blue-teal */
   --primary-foreground: oklch(14% 0.02 192);
 
   --secondary: oklch(22% 0.008 250);
@@ -115,7 +115,7 @@
   --muted: oklch(22% 0.006 250);
   --muted-foreground: oklch(62% 0.01 250);
 
-  --accent: oklch(26% 0.035 192);       /* Rich teal accent surface */
+  --accent: oklch(26% 0.035 192); /* Rich teal accent surface */
   --accent-foreground: oklch(82% 0.055 192);
 
   --destructive: oklch(40% 0.15 25);
@@ -124,7 +124,7 @@
   --warning: oklch(40% 0.1 75);
   --warning-foreground: oklch(93% 0.04 75);
 
-  --border: oklch(26% 0.01 250);        /* Cool neutral border */
+  --border: oklch(26% 0.01 250); /* Cool neutral border */
   --input: oklch(26% 0.01 250);
   --ring: oklch(68% 0.12 192);
 
@@ -459,8 +459,12 @@ select:focus-visible {
 
 /* Logo shimmer animation */
 @keyframes logo-shimmer {
-  0% { background-position: 0% center; }
-  100% { background-position: 200% center; }
+  0% {
+    background-position: 0% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
 }
 
 /* Panel entrance animation */
@@ -573,7 +577,11 @@ select:focus-visible {
 .markdown-viewer .tiptap a {
   color: var(--accent-foreground);
   text-decoration: underline;
-  text-decoration-color: color-mix(in srgb, var(--accent-foreground) 30%, transparent);
+  text-decoration-color: color-mix(
+    in srgb,
+    var(--accent-foreground) 30%,
+    transparent
+  );
   cursor: pointer;
   transition: text-decoration-color 0.15s;
 }

@@ -77,8 +77,9 @@ export const DEMO_RICH_LOG_CONTENT = `
 - Read article about React Compiler optimizations
 `.trim();
 
-export const DEMO_SEARCH_RESULT = "Based on your work logs, you last met with **@sarah** on **2026-02-27** (Thursday).\n\n**From that day's log:**\n- 1:1 with Sarah — discussed Q2 roadmap priorities and the upcoming analytics migration\n- Agreed to sync again after the design review next Wednesday\n\nBefore that, you also met on **2026-02-13** for sprint planning.";
-export const DEMO_SEARCH_QUERY = 'when did I meet with sarah?';
+export const DEMO_SEARCH_RESULT =
+  "Based on your work logs, you last met with **@sarah** on **2026-02-27** (Thursday).\n\n**From that day's log:**\n- 1:1 with Sarah — discussed Q2 roadmap priorities and the upcoming analytics migration\n- Agreed to sync again after the design review next Wednesday\n\nBefore that, you also met on **2026-02-13** for sprint planning.";
+export const DEMO_SEARCH_QUERY = "when did I meet with sarah?";
 
 export const DEMO_SUMMARY_RESULT = `## Daily Standup
 
@@ -256,7 +257,14 @@ export const DEMO_ISSUES = [
     author: "designer42",
     assignees: ["you"],
     linkedPRs: [
-      { number: 421, title: "fix: crash on mobile Safari chart render", url: "#", state: "OPEN", isDraft: false },
+      {
+        number: 421,
+        title: "fix: crash on mobile Safari chart render",
+        url: "#",
+        state: "OPEN",
+        isDraft: false,
+        repoFullName: "acme/frontend",
+      },
     ],
   },
   {
@@ -273,7 +281,14 @@ export const DEMO_ISSUES = [
     author: "pm-lead",
     assignees: ["you", COPILOT_AGENT_LOGIN],
     linkedPRs: [
-      { number: 90, title: "feat: dark mode email templates (WIP)", url: "#", state: "OPEN", isDraft: true },
+      {
+        number: 90,
+        title: "feat: dark mode email templates (WIP)",
+        url: "#",
+        state: "OPEN",
+        isDraft: true,
+        repoFullName: "acme/mailer",
+      },
     ],
   },
   {

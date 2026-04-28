@@ -1,10 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { GitMerge, CheckCircle } from "lucide-react";
+import { GitMerge, CheckCircle, MessageSquare } from "lucide-react";
 import { DEMO_PRS } from "@/lib/demo";
 import { useVisibilityPolling } from "@/hooks/useVisibilityPolling";
 import { isCopilotLogin } from "@/lib/constants";
+import { ReferencePill } from "./ReferencePill";
 
 type PullRequest = {
   id: number;
@@ -74,7 +75,11 @@ export default function MyPRs({
       // incidents that produce spurious zeros. If we already have data, treat
       // an empty response as transient and keep what we had.
       if (data.length === 0 && _prCache && _prCache.length > 0) {
-        console.log("[MyPRs] Ignoring empty response; keeping cached", _prCache.length, "PRs");
+        console.log(
+          "[MyPRs] Ignoring empty response; keeping cached",
+          _prCache.length,
+          "PRs",
+        );
       } else {
         setPrs(data);
         _prCache = data;
@@ -103,7 +108,10 @@ export default function MyPRs({
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
         <h2 className="text-base font-bold text-foreground flex items-center gap-2">
-          <GitMerge className="h-5 w-5 text-blue-600 dark:text-blue-400" aria-hidden="true" />
+          <GitMerge
+            className="h-5 w-5 text-blue-600 dark:text-blue-400"
+            aria-hidden="true"
+          />
           My PRs
         </h2>
         <button
@@ -201,31 +209,34 @@ export default function MyPRs({
                             </span>
                           )}
                         {pr.reviewDecision === "APPROVED" && (
-                          <svg
-                            className="mr-1 inline-block align-text-bottom text-success"
-                            width="14"
-                            height="14"
-                            viewBox="0 0 16 16"
-                            fill="currentColor"
+                          <span
+                            className="mr-1.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[rgb(31,136,61)] align-middle"
                             aria-label="Approved"
+                            title="Approved"
                           >
-                            <path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0Zm3.78 4.78a.75.75 0 0 0-1.06-1.06L6.75 8.69 5.28 7.22a.75.75 0 0 0-1.06 1.06l2 2a.75.75 0 0 0 1.06 0l4.5-4.5Z" />
-                          </svg>
+                            <svg
+                              width="16"
+                              height="16"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="white"
+                              strokeWidth="3"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              aria-hidden="true"
+                            >
+                              <path d="m9 12 2 2 4-4" />
+                            </svg>
+                          </span>
                         )}
                         {pr.reviewDecision === "CHANGES_REQUESTED" && (
                           <span className="mr-1.5 rounded-full bg-destructive/10 px-1.5 py-0.5 text-[10px] font-semibold text-destructive">
                             CHANGES REQUESTED
                           </span>
                         )}
-                        {pr.unresolvedThreads > 0 && (
-                          <span className="mr-1.5 rounded-full bg-accent px-1.5 py-0.5 text-[10px] font-semibold text-accent-foreground">
-                            {pr.unresolvedThreads} COMMENT
-                            {pr.unresolvedThreads !== 1 ? "S" : ""}
-                          </span>
-                        )}
                         {pr.isAssignee && isCopilotLogin(pr.authorLogin) && (
                           <svg
-                            className="mr-1 inline-block align-text-bottom"
+                            className="mr-1 relative top-px inline-block shrink-0"
                             width="14"
                             height="14"
                             viewBox="0 0 24 24"
@@ -242,11 +253,23 @@ export default function MyPRs({
                       </span>
                     </div>
                     <div className="mt-1 flex items-center gap-1.5 flex-wrap">
-                      <span className="rounded-full bg-secondary px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
-                        {pr.repoFullName}#{pr.number}
-                      </span>
+                      <ReferencePill
+                        label={`${pr.repoFullName}#${pr.number}`}
+                      />
+                      {pr.unresolvedThreads > 0 && (
+                        <span className="inline-flex items-center gap-0.5 text-xs text-muted-foreground">
+                          <MessageSquare
+                            className="h-3 w-3"
+                            aria-hidden="true"
+                          />
+                          {pr.unresolvedThreads}
+                        </span>
+                      )}
                       {pr.branchName && (
-                        <span className="rounded-full bg-secondary px-1.5 py-0.5 text-[10px] font-semibold font-mono text-muted-foreground truncate max-w-[320px] hover:max-w-none hover:z-10 hover:ring-1 hover:ring-ring transition-all" title={pr.branchName}>
+                        <span
+                          className="rounded-full bg-secondary px-1.5 py-0.5 text-[10px] font-semibold font-mono text-muted-foreground truncate max-w-[320px] hover:max-w-none hover:z-10 hover:ring-1 hover:ring-ring transition-all"
+                          title={pr.branchName}
+                        >
                           {pr.branchName}
                         </span>
                       )}

@@ -1,17 +1,20 @@
-'use client';
+"use client";
 
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Bot, GitPullRequest, CheckCircle } from 'lucide-react';
-import { useVisibilityPolling } from '@/hooks/useVisibilityPolling';
-import type { AgentSession } from '@/app/api/sessions/route';
-import { DEMO_SESSIONS } from '@/lib/demo';
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Bot, GitPullRequest, CheckCircle } from "lucide-react";
+import { useVisibilityPolling } from "@/hooks/useVisibilityPolling";
+import type { AgentSession } from "@/app/api/sessions/route";
+import { DEMO_SESSIONS } from "@/lib/demo";
+import { PullRequestReferencePill } from "./ReferencePill";
 
 // Module-level cache to survive remounts (e.g. layout switches)
 let _sessionCache: AgentSession[] | null = null;
 
 function timeAgo(dateString: string): string {
-  const seconds = Math.floor((Date.now() - new Date(dateString).getTime()) / 1000);
-  if (seconds < 60) return 'just now';
+  const seconds = Math.floor(
+    (Date.now() - new Date(dateString).getTime()) / 1000,
+  );
+  if (seconds < 60) return "just now";
   const minutes = Math.floor(seconds / 60);
   if (minutes < 60) return `${minutes}m ago`;
   const hours = Math.floor(minutes / 60);
@@ -24,13 +27,13 @@ function dateBucket(dateString: string): string {
   const now = new Date();
   const date = new Date(dateString);
   const diffDays = Math.floor((now.getTime() - date.getTime()) / 86_400_000);
-  if (diffDays === 0) return 'Today';
-  if (diffDays === 1) return 'Yesterday';
-  if (diffDays <= 7) return 'This Week';
-  return 'Older';
+  if (diffDays === 0) return "Today";
+  if (diffDays === 1) return "Yesterday";
+  if (diffDays <= 7) return "This Week";
+  return "Older";
 }
 
-const BUCKET_ORDER = ['Today', 'Yesterday', 'This Week', 'Older'];
+const BUCKET_ORDER = ["Today", "Yesterday", "This Week", "Older"];
 
 function groupByDate(sessions: AgentSession[]): [string, AgentSession[]][] {
   const groups: Record<string, AgentSession[]> = {};
@@ -42,7 +45,7 @@ function groupByDate(sessions: AgentSession[]): [string, AgentSession[]][] {
 }
 
 function insertText(session: AgentSession): string {
-  const url = session.pullRequestUrl ?? session.taskUrl ?? '';
+  const url = session.pullRequestUrl ?? session.taskUrl ?? "";
   return url ? `[${session.name}](${url})` : session.name;
 }
 
@@ -57,27 +60,30 @@ export default function AgentSessions({
   const [loading, setLoading] = useState(_sessionCache === null);
   const abortRef = useRef<AbortController | null>(null);
 
-  const refresh = useCallback(async (showLoading = false) => {
-    if (showLoading) setLoading(true);
-    if (isDemo) {
-      setSessions(DEMO_SESSIONS);
-      setLoading(false);
-      return;
-    }
-    try {
-      abortRef.current?.abort();
-      const controller = new AbortController();
-      abortRef.current = controller;
-      const res = await fetch('/api/sessions', { signal: controller.signal });
-      const data: AgentSession[] = res.ok ? await res.json() : [];
-      setSessions(data);
-      _sessionCache = data;
-    } catch (err) {
-      if (err instanceof Error && err.name === 'AbortError') return;
-    } finally {
-      setLoading(false);
-    }
-  }, [isDemo]);
+  const refresh = useCallback(
+    async (showLoading = false) => {
+      if (showLoading) setLoading(true);
+      if (isDemo) {
+        setSessions(DEMO_SESSIONS);
+        setLoading(false);
+        return;
+      }
+      try {
+        abortRef.current?.abort();
+        const controller = new AbortController();
+        abortRef.current = controller;
+        const res = await fetch("/api/sessions", { signal: controller.signal });
+        const data: AgentSession[] = res.ok ? await res.json() : [];
+        setSessions(data);
+        _sessionCache = data;
+      } catch (err) {
+        if (err instanceof Error && err.name === "AbortError") return;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [isDemo],
+  );
 
   useVisibilityPolling(refresh, 5 * 60_000);
 
@@ -86,7 +92,12 @@ export default function AgentSessions({
     refresh(_sessionCache === null);
   }, [refresh]);
 
-  useEffect(() => () => { abortRef.current?.abort(); }, []);
+  useEffect(
+    () => () => {
+      abortRef.current?.abort();
+    },
+    [],
+  );
 
   const groups = groupByDate(sessions);
 
@@ -95,7 +106,10 @@ export default function AgentSessions({
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border">
         <h2 className="text-base font-bold text-foreground flex items-center gap-2">
-          <Bot className="h-5 w-5 text-indigo-500 dark:text-indigo-400" aria-hidden="true" />
+          <Bot
+            className="h-5 w-5 text-indigo-500 dark:text-indigo-400"
+            aria-hidden="true"
+          />
           <a
             href="https://github.com/copilot/agents"
             target="_blank"
@@ -137,101 +151,109 @@ export default function AgentSessions({
         {!loading && sessions.length === 0 && (
           <div className="flex items-center justify-center gap-2 py-12 text-sm text-muted-foreground">
             <CheckCircle className="h-4 w-4" aria-hidden="true" />
-            {isDemo ? 'No sessions found' : 'No sessions found'}
+            {isDemo ? "No sessions found" : "No sessions found"}
           </div>
         )}
 
-        {!loading && groups.map(([bucket, items]) => (
-          <div key={bucket}>
-            <div className="px-4 py-1.5 text-xs font-semibold text-muted-foreground bg-muted border-b border-border sticky top-0">
-              {bucket}
-            </div>
-            <ul className="divide-y divide-border">
-              {items.map((session) => {
-                const repoShort = session.repository?.split('/')[1] ?? session.repository;
+        {!loading &&
+          groups.map(([bucket, items]) => (
+            <div key={bucket}>
+              <div className="px-4 py-1.5 text-xs font-semibold text-muted-foreground bg-muted border-b border-border sticky top-0">
+                {bucket}
+              </div>
+              <ul className="divide-y divide-border">
+                {items.map((session) => {
+                  const repoShort =
+                    session.repository?.split("/")[1] ?? session.repository;
 
-                return (
-                  <li
-                    key={session.id}
-                    className="group px-4 py-3 transition-colors hover:bg-muted/50"
-                  >
-                    <div className="flex items-start gap-2">
-                      {onInsert && (
-                        <button
-                          onClick={() => onInsert(insertText(session))}
-                          title="Insert link at cursor"
-                          aria-label={`Insert link for "${session.name}"`}
-                          className="mt-0.5 shrink-0 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-all rounded p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                        >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            viewBox="0 0 16 16"
-                            fill="currentColor"
-                            className="w-4 h-4"
-                            aria-hidden="true"
+                  return (
+                    <li
+                      key={session.id}
+                      className="group px-4 py-3 transition-colors hover:bg-muted/50"
+                    >
+                      <div className="flex items-start gap-2">
+                        {onInsert && (
+                          <button
+                            onClick={() => onInsert(insertText(session))}
+                            title="Insert link at cursor"
+                            aria-label={`Insert link for "${session.name}"`}
+                            className="mt-0.5 shrink-0 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-all rounded p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                           >
-                            <path d="M2 4.5A1.5 1.5 0 0 1 3.5 3h9A1.5 1.5 0 0 1 14 4.5v5a1.5 1.5 0 0 1-1.5 1.5H9.56l.97.97a.75.75 0 1 1-1.06 1.06l-2.25-2.25a.75.75 0 0 1 0-1.06l2.25-2.25a.75.75 0 0 1 1.06 1.06l-.97.97h2.94a.25.25 0 0 0 .25-.25v-5a.25.25 0 0 0-.25-.25h-9a.25.25 0 0 0-.25.25v2a.75.75 0 0 1-1.5 0v-2z" />
-                          </svg>
-                        </button>
-                      )}
-                      <div className="min-w-0 flex-1">
-                        {session.taskUrl ? (
-                          <a
-                            href={session.taskUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-sm font-medium text-foreground truncate leading-snug hover:underline block"
-                          >
-                            {session.name}
-                          </a>
-                        ) : (
-                          <span className="text-sm font-medium text-foreground truncate leading-snug block">
-                            {session.name}
-                          </span>
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              viewBox="0 0 16 16"
+                              fill="currentColor"
+                              className="w-4 h-4"
+                              aria-hidden="true"
+                            >
+                              <path d="M2 4.5A1.5 1.5 0 0 1 3.5 3h9A1.5 1.5 0 0 1 14 4.5v5a1.5 1.5 0 0 1-1.5 1.5H9.56l.97.97a.75.75 0 1 1-1.06 1.06l-2.25-2.25a.75.75 0 0 1 0-1.06l2.25-2.25a.75.75 0 0 1 1.06 1.06l-.97.97h2.94a.25.25 0 0 0 .25-.25v-5a.25.25 0 0 0-.25-.25h-9a.25.25 0 0 0-.25.25v2a.75.75 0 0 1-1.5 0v-2z" />
+                            </svg>
+                          </button>
                         )}
-                        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
-                          {repoShort && (
-                            <span className="flex items-center gap-1">
-                              <GitPullRequest className="h-3 w-3 shrink-0" aria-hidden="true" />
-                              <span className="truncate max-w-[160px]">{repoShort}</span>
-                            </span>
-                          )}
-                          <span>{timeAgo(session.createdAt)}</span>
-                          {session.pullRequestNumber && (
+                        <div className="min-w-0 flex-1">
+                          {session.taskUrl ? (
                             <a
-                              href={session.pullRequestUrl ?? '#'}
+                              href={session.taskUrl}
                               target="_blank"
                               rel="noopener noreferrer"
-                              onClick={(e) => e.stopPropagation()}
-                              className={`rounded-full px-1.5 py-0.5 text-xs font-medium ring-1 ring-inset tabular-nums ${
-                                session.pullRequestState === 'MERGED'
-                                  ? 'bg-teal-50 text-teal-700 ring-teal-600/20 dark:bg-teal-500/10 dark:text-teal-400 dark:ring-teal-500/20'
-                                  : session.pullRequestState === 'CLOSED'
-                                  ? 'bg-zinc-50 text-zinc-600 ring-zinc-500/20 dark:bg-zinc-500/10 dark:text-zinc-400 dark:ring-zinc-500/20'
-                                  : 'bg-muted text-muted-foreground ring-border'
-                              }`}
+                              className="text-sm font-medium text-foreground truncate leading-snug hover:underline block"
                             >
-                              PR #{session.pullRequestNumber}
+                              {session.name}
                             </a>
-                          )}
-                          {session.state !== 'completed' && (
-                            <span className={`rounded-full px-1.5 py-0.5 text-xs font-medium ring-1 ring-inset ${
-                              session.state === 'in_progress'
-                                ? 'bg-blue-50 text-blue-700 ring-blue-600/20 dark:bg-blue-500/10 dark:text-blue-400 dark:ring-blue-500/20'
-                                : 'bg-amber-50 text-amber-700 ring-amber-600/20 dark:bg-amber-500/10 dark:text-amber-400 dark:ring-amber-500/20'
-                            }`}>
-                              {session.state === 'in_progress' ? 'running' : 'timed out'}
+                          ) : (
+                            <span className="text-sm font-medium text-foreground truncate leading-snug block">
+                              {session.name}
                             </span>
                           )}
+                          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
+                            {repoShort && (
+                              <span className="flex items-center gap-1">
+                                <GitPullRequest
+                                  className="h-3 w-3 shrink-0"
+                                  aria-hidden="true"
+                                />
+                                <span className="truncate max-w-[160px]">
+                                  {repoShort}
+                                </span>
+                              </span>
+                            )}
+                            <span>{timeAgo(session.createdAt)}</span>
+                            {session.pullRequestNumber && (
+                              <PullRequestReferencePill
+                                href={session.pullRequestUrl ?? "#"}
+                                onClick={(e) => e.stopPropagation()}
+                                label={`#${session.pullRequestNumber}`}
+                                tone={
+                                  session.pullRequestState === "MERGED"
+                                    ? "merged"
+                                    : session.pullRequestState === "CLOSED"
+                                      ? "closed"
+                                      : "open"
+                                }
+                              />
+                            )}
+                            {session.state !== "completed" && (
+                              <span
+                                className={`rounded-full px-1.5 py-0.5 text-xs font-medium ring-1 ring-inset ${
+                                  session.state === "in_progress"
+                                    ? "bg-blue-50 text-blue-700 ring-blue-600/20 dark:bg-blue-500/10 dark:text-blue-400 dark:ring-blue-500/20"
+                                    : "bg-amber-50 text-amber-700 ring-amber-600/20 dark:bg-amber-500/10 dark:text-amber-400 dark:ring-amber-500/20"
+                                }`}
+                              >
+                                {session.state === "in_progress"
+                                  ? "running"
+                                  : "timed out"}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        ))}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))}
       </div>
     </div>
   );

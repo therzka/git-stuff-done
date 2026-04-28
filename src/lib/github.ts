@@ -53,7 +53,11 @@ async function searchWithRetryOnZero<
   await new Promise((r) => setTimeout(r, 500));
   const retry = await fn();
   if (retry.data.total_count > 0) {
-    console.log(`[github] ${label}: retry returned`, retry.data.total_count, "(first was 0)");
+    console.log(
+      `[github] ${label}: retry returned`,
+      retry.data.total_count,
+      "(first was 0)",
+    );
     return retry;
   }
   return first;
@@ -211,7 +215,12 @@ export async function fetchMyPRs(): Promise<MyPullRequest[]> {
       per_page: 30,
     }),
   );
-  console.log("[github] fetchMyPRs: Authored =", authoredRes.data.items.length, "Assigned =", assignedRes.data.items.length);
+  console.log(
+    "[github] fetchMyPRs: Authored =",
+    authoredRes.data.items.length,
+    "Assigned =",
+    assignedRes.data.items.length,
+  );
 
   // Deduplicate by ID and sort by updatedAt
   const seenIds = new Set<number>();
@@ -449,6 +458,7 @@ export type MyIssue = {
     url: string;
     state: string;
     isDraft: boolean;
+    repoFullName: string;
   }[];
 };
 
@@ -520,7 +530,7 @@ export async function fetchMyIssues(): Promise<MyIssue[]> {
       for (const num of numbers) {
         const alias = `issue${idx}`;
         fragments.push(
-          `${alias}: repository(owner: "${owner}", name: "${repo}") { issue(number: ${num}) { timelineItems(itemTypes: [CROSS_REFERENCED_EVENT], last: 10) { nodes { ... on CrossReferencedEvent { source { __typename ... on PullRequest { number title url state isDraft } } } } } } }`,
+          `${alias}: repository(owner: "${owner}", name: "${repo}") { issue(number: ${num}) { timelineItems(itemTypes: [CROSS_REFERENCED_EVENT], last: 10) { nodes { ... on CrossReferencedEvent { source { __typename ... on PullRequest { number title url state isDraft repository { nameWithOwner } } } } } } } }`,
         );
         issueKeyMap.push(`${owner}/${repo}#${num}`);
         idx++;
@@ -535,6 +545,9 @@ export async function fetchMyIssues(): Promise<MyIssue[]> {
         url: string;
         state: string;
         isDraft: boolean;
+        repository?: {
+          nameWithOwner: string;
+        };
       };
       type GraphQLIssue = {
         issue: {
@@ -567,6 +580,8 @@ export async function fetchMyIssues(): Promise<MyIssue[]> {
               url: pr.url,
               state: pr.state,
               isDraft: pr.isDraft,
+              repoFullName:
+                pr.repository?.nameWithOwner ?? issueObj.repoFullName,
             };
           });
       }
