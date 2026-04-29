@@ -31,7 +31,7 @@ function highlightQuery(text: string, query: string): string {
   const escaped = escapeHtml(text);
   const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const re = new RegExp(`(${escapedQuery})`, 'gi');
-  return escaped.replace(re, '<mark class="bg-yellow-200 dark:bg-yellow-800/60 text-foreground rounded px-0.5">$1</mark>');
+  return escaped.replace(re, '<mark class="bg-gradient-to-r from-violet-300 to-pink-300 dark:from-violet-500/50 dark:to-pink-500/50 text-foreground rounded px-0.5 font-semibold">$1</mark>');
 }
 
 function escapeHtml(str: string): string {
