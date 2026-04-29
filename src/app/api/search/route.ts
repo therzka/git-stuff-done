@@ -573,7 +573,15 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
 
-  const { query, model, todayDate, offsetDays = 0, useKeywordPrefilter = false } = body;
+  const {
+    query,
+    model,
+    todayDate,
+    offsetDays = 0,
+    useKeywordPrefilter = false,
+    startDate,
+    endDate,
+  } = body;
   console.log(`[search] query="${query}" model=${model} offsetDays=${offsetDays} useKeywordPrefilter=${useKeywordPrefilter}`);
 
   if (!query || !todayDate) {
@@ -588,41 +596,44 @@ export async function POST(req: Request) {
   return createSearchStream(async (emit, signal) => {
     if (useKeywordPrefilter) {
       await searchWithKeywordPrefilter(query, model, todayDate, today, offsetDays, emit, signal);
+    } else if (startDate && endDate) {
+      console.log(`[search] explicit date range: ${startDate} to ${endDate}`);
+      await searchDateBounded(query, model, todayDate, startDate, endDate, emit, signal);
     } else {
       emit({ type: 'progress', message: 'Classifying query...' });
-    const classifyStart = Date.now();
-    const classification = await classifySearchQuery(query, todayDate);
-    throwIfAborted(signal);
-    console.log(`[search] classified as ${classification.mode} in ${Date.now() - classifyStart}ms`, classification.startDate ? `range=${classification.startDate}..${classification.endDate}` : '');
+      const classifyStart = Date.now();
+      const classification = await classifySearchQuery(query, todayDate);
+      throwIfAborted(signal);
+      console.log(`[search] classified as ${classification.mode} in ${Date.now() - classifyStart}ms`, classification.startDate ? `range=${classification.startDate}..${classification.endDate}` : '');
 
-    switch (classification.mode) {
-      case 'exhaustive':
-        await searchExhaustive(query, model, todayDate, today, emit, signal);
-        break;
+      switch (classification.mode) {
+        case 'exhaustive':
+          await searchExhaustive(query, model, todayDate, today, emit, signal);
+          break;
 
-      case 'date_bounded': {
-        const startDate =
-          classification.startDate ?? formatDate(new Date(today.getTime() - 14 * 86400000));
-        const endDate = classification.endDate ?? todayDate;
+        case 'date_bounded': {
+          const startDate =
+            classification.startDate ?? formatDate(new Date(today.getTime() - 14 * 86400000));
+          const endDate = classification.endDate ?? todayDate;
 
-        const parsedStart = new Date(startDate + 'T00:00:00');
-        const parsedEnd = new Date(endDate + 'T00:00:00');
-        if (isNaN(parsedStart.getTime()) || isNaN(parsedEnd.getTime())) {
-          console.log(`[search] invalid dates from classifier, falling back to recent_first`);
-          await searchRecentFirst(query, model, todayDate, today, offsetDays, emit, signal);
+          const parsedStart = new Date(startDate + 'T00:00:00');
+          const parsedEnd = new Date(endDate + 'T00:00:00');
+          if (isNaN(parsedStart.getTime()) || isNaN(parsedEnd.getTime())) {
+            console.log(`[search] invalid dates from classifier, falling back to recent_first`);
+            await searchRecentFirst(query, model, todayDate, today, offsetDays, emit, signal);
+            break;
+          }
+          const resolvedStart = parsedStart <= parsedEnd ? startDate : endDate;
+          const resolvedEnd = parsedStart <= parsedEnd ? endDate : startDate;
+          await searchDateBounded(query, model, todayDate, resolvedStart, resolvedEnd, emit, signal);
           break;
         }
-        const resolvedStart = parsedStart <= parsedEnd ? startDate : endDate;
-        const resolvedEnd = parsedStart <= parsedEnd ? endDate : startDate;
-        await searchDateBounded(query, model, todayDate, resolvedStart, resolvedEnd, emit, signal);
-        break;
-      }
 
-      case 'recent_first':
-      default:
-        await searchRecentFirst(query, model, todayDate, today, offsetDays, emit, signal);
-        break;
-    }
+        case 'recent_first':
+        default:
+          await searchRecentFirst(query, model, todayDate, today, offsetDays, emit, signal);
+          break;
+      }
     }
 
     console.log(`[search] completed in ${Date.now() - t0}ms`);

@@ -31,7 +31,7 @@ import GitHubNotifications from './GitHubNotifications';
 import AgentSessions from './AgentSessions';
 import AiModal from './AiModal';
 import SummariesModal from './SummariesModal';
-import LogSearchModal from './LogSearchModal';
+import SearchModal from './SearchModal';
 import CalendarPicker from './CalendarPicker';
 import { GITHUB_ORG } from '@/lib/constants';
 import { DEMO_CONFIG } from '@/lib/demo';
@@ -126,13 +126,13 @@ export default function Dashboard() {
   const [mounted, setMounted] = useState(false);
   const [commitState, setCommitState] = useState<CommitState>('idle');
   const [date, setDate] = useState(todayISO);
-  const [aiModalTab, setAiModalTab] = useState<'search' | 'summarize' | null>(null);
+  const [showAiModal, setShowAiModal] = useState(false);
   const [aiMenuOpen, setAiMenuOpen] = useState(false);
   const aiMenuBtnRef = useRef<HTMLButtonElement>(null);
   const aiMenuRef = useRef<HTMLDivElement>(null);
   const [aiMenuPos, setAiMenuPos] = useState({ top: 0, left: 0 });
   const [showSummaries, setShowSummaries] = useState(false);
-  const [showLogSearch, setShowLogSearch] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
   const insertAtCursorRef = useRef<((text: string) => void) | null>(null);
   const commitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isNarrowLayout, setIsNarrowLayout] = useState(false);
@@ -453,7 +453,7 @@ export default function Dashboard() {
             <Sparkles className="h-4 w-4" aria-hidden="true" />
           </button>
           <button
-            onClick={() => setShowLogSearch(true)}
+            onClick={() => setShowSearch(true)}
             className="rounded-lg px-2 py-1.5 text-sm text-muted-foreground transition hover:bg-accent hover:text-accent-foreground"
             aria-label="Search logs"
             title="Search logs"
@@ -557,14 +557,7 @@ export default function Dashboard() {
               className="min-w-52 whitespace-nowrap rounded-xl border border-border bg-popover shadow-xl p-2 select-none"
             >
               <button
-                onClick={() => { setAiModalTab('search'); setAiMenuOpen(false); }}
-                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors"
-              >
-                <Search className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                Search Logs
-              </button>
-              <button
-                onClick={() => { setAiModalTab('summarize'); setAiMenuOpen(false); }}
+                onClick={() => { setShowAiModal(true); setAiMenuOpen(false); }}
                 className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors"
               >
                 <BarChart2 className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
@@ -575,16 +568,17 @@ export default function Dashboard() {
           )
         : null}
 
-      <LogSearchModal
-        isOpen={showLogSearch}
-        onClose={() => setShowLogSearch(false)}
-        onNavigate={(d) => { setDate(d); setShowLogSearch(false); }}
+      <SearchModal
+        isOpen={showSearch}
+        onClose={() => setShowSearch(false)}
+        onNavigate={(d) => { setDate(d); setShowSearch(false); }}
+        defaultDate={date}
+        isDemo={isDemo}
       />
 
       <AiModal
-        isOpen={aiModalTab !== null}
-        onClose={() => setAiModalTab(null)}
-        defaultTab={aiModalTab ?? 'search'}
+        isOpen={showAiModal}
+        onClose={() => setShowAiModal(false)}
         defaultDate={date}
         isDemo={isDemo}
       />

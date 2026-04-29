@@ -9,7 +9,8 @@
 ## Features
 
 - **📝 Work Log Editor** — Hybrid markdown editor with inline rendering. Supports drag-and-drop images, `@mention` autocomplete for GitHub org members, and Slack thread previews.
-- **✨ AI Assistant** — Summarize your work logs for standups or weekly reports, and search across all logs with natural language queries.
+- **✨ AI Assistant** — Summarize your work logs for standups or weekly reports.
+- **🔎 Search** — Search across all logs with natural language queries from the dedicated search modal.
 - **✅ TODO List** — Manual TODOs and AI-suggested action items based on your work log.
 - **🔀 My PRs** — Live feed of your open PRs with status badges (Draft, CI Failing, Needs Review, merge queue, etc.).
 - **🐛 My Issues** — Open issues assigned to you with linked PR status and one-click Copilot agent assignment.

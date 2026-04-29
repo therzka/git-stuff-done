@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { readdir, readFile } from 'fs/promises';
-import { getDataRoot } from '@/lib/files';
+import { getDataRoot, isValidDate } from '@/lib/files';
 import { getMatchingParagraphs } from '@/lib/search';
 import path from 'path';
 
@@ -14,6 +14,8 @@ export interface LogSearchResult {
 
 export async function GET(request: NextRequest) {
   const q = request.nextUrl.searchParams.get('q')?.trim() ?? '';
+  const from = request.nextUrl.searchParams.get('from')?.trim() ?? '';
+  const to = request.nextUrl.searchParams.get('to')?.trim() ?? '';
 
   if (!q) {
     return NextResponse.json({ error: 'Missing query parameter q' }, { status: 400 });
@@ -21,6 +23,14 @@ export async function GET(request: NextRequest) {
 
   if (q.length > MAX_QUERY_LENGTH) {
     return NextResponse.json({ error: 'Query too long' }, { status: 400 });
+  }
+
+  if (from && !isValidDate(from)) {
+    return NextResponse.json({ error: 'Invalid from date' }, { status: 400 });
+  }
+
+  if (to && !isValidDate(to)) {
+    return NextResponse.json({ error: 'Invalid to date' }, { status: 400 });
   }
 
   try {
@@ -31,7 +41,8 @@ export async function GET(request: NextRequest) {
       .filter((f) => /^\d{4}-\d{2}-\d{2}\.md$/.test(f))
       .map((f) => f.replace('.md', ''))
       .sort()
-      .reverse();
+      .reverse()
+      .filter((date) => (!from || date >= from) && (!to || date <= to));
 
     const results: LogSearchResult[] = [];
 
