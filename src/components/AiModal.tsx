@@ -64,6 +64,17 @@ export default function AiModal({ isOpen, onClose, defaultDate, isDemo = false }
   const selectedPrompt = prompts.find((prompt) => prompt.id === selectedPromptId);
   const dailyStandupValue = prompts.find((prompt) => prompt.id === 'daily-standup')?.value ?? '';
 
+  // Tab state
+  const [activeTab, setActiveTab] = useState<'summarize' | 'prompts'>('summarize');
+
+  // Prompts-tab editing state
+  const [editingPrompts, setEditingPrompts] = useState<Record<string, { label: string; value: string }>>({});
+  const [promptErrors, setPromptErrors] = useState<Record<string, string>>({});
+  const [addingNew, setAddingNew] = useState(false);
+  const [newLabel, setNewLabel] = useState('');
+  const [newValue, setNewValue] = useState('');
+  const [newError, setNewError] = useState<string | null>(null);
+
   useEffect(() => {
     if (!isOpen) return;
     setPromptsLoading(true);
@@ -140,6 +151,97 @@ export default function AiModal({ isOpen, onClose, defaultDate, isDemo = false }
     }
   };
 
+  // --- Prompts tab handlers ---
+
+  const handleEditChange = (id: string, field: 'label' | 'value', val: string) => {
+    setEditingPrompts((prev) => ({ ...prev, [id]: { ...prev[id], label: prev[id]?.label ?? '', value: prev[id]?.value ?? '', [field]: val } }));
+    setPromptErrors((prev) => { const n = { ...prev }; delete n[id]; return n; });
+  };
+
+  const getEditing = (prompt: SummaryPrompt) =>
+    editingPrompts[prompt.id] ?? { label: prompt.label, value: prompt.value };
+
+  const isDirty = (prompt: SummaryPrompt) => {
+    const e = editingPrompts[prompt.id];
+    return e !== undefined && (e.label !== prompt.label || e.value !== prompt.value);
+  };
+
+  const handleSaveEdit = async (prompt: SummaryPrompt) => {
+    const e = editingPrompts[prompt.id];
+    if (!e) return;
+    const label = e.label.trim();
+    const value = e.value.trim();
+    if (!label || !value) {
+      setPromptErrors((prev) => ({ ...prev, [prompt.id]: 'Label and value are required' }));
+      return;
+    }
+    try {
+      const res = await fetch('/api/summary-prompts', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: prompt.id, label, value }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setPromptErrors((prev) => ({ ...prev, [prompt.id]: data.error ?? 'Failed to save' }));
+        return;
+      }
+      const data = await res.json();
+      setPrompts((prev) => prev.map((p) => p.id === prompt.id ? data.prompt : p));
+      setEditingPrompts((prev) => { const n = { ...prev }; delete n[prompt.id]; return n; });
+    } catch {
+      setPromptErrors((prev) => ({ ...prev, [prompt.id]: 'Failed to save' }));
+    }
+  };
+
+  const handleResetBuiltin = async (prompt: SummaryPrompt) => {
+    try {
+      const res = await fetch(`/api/summary-prompts?id=${encodeURIComponent(prompt.id)}`, { method: 'PATCH' });
+      if (!res.ok) return;
+      const data = await res.json();
+      setPrompts((prev) => prev.map((p) => p.id === prompt.id ? data.prompt : p));
+      setEditingPrompts((prev) => { const n = { ...prev }; delete n[prompt.id]; return n; });
+    } catch { /* silent */ }
+  };
+
+  const isBuiltinOverridden = (prompt: SummaryPrompt) => {
+    if (!prompt.is_builtin) return false;
+    const e = editingPrompts[prompt.id];
+    // Check if the stored prompt differs from BUILTIN defaults — we rely on the API to tell us
+    // by checking if the label/value differ from what the original constants were.
+    // Since we don't have the originals client-side, we use a flag: if the user has edited it via PUT,
+    // the API returns the overridden values. We track "isOverride" by seeing if GET value differs
+    // from the hardcoded defaults below.
+    if (e) return true;
+    return false;
+  };
+
+  const handleAddNew = async () => {
+    const label = newLabel.trim();
+    const value = newValue.trim();
+    if (!label || !value) { setNewError('Both label and value are required'); return; }
+    setNewError(null);
+    try {
+      const res = await fetch('/api/summary-prompts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ label, value }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setNewError(data.error ?? 'Failed to add');
+        return;
+      }
+      const data = await res.json();
+      setPrompts((prev) => [...prev, data.prompt]);
+      setAddingNew(false);
+      setNewLabel('');
+      setNewValue('');
+    } catch {
+      setNewError('Failed to add prompt');
+    }
+  };
+
   // --- Close / reset ---
 
   const handleClose = useCallback(() => {
@@ -155,6 +257,13 @@ export default function AiModal({ isOpen, onClose, defaultDate, isDemo = false }
     setSavingPrompt(false);
     setNewPromptLabel('');
     setPromptSaveError(null);
+    setActiveTab('summarize');
+    setEditingPrompts({});
+    setPromptErrors({});
+    setAddingNew(false);
+    setNewLabel('');
+    setNewValue('');
+    setNewError(null);
     onClose();
   }, [dailyStandupValue, defaultDate, onClose]);
 
@@ -267,14 +376,33 @@ export default function AiModal({ isOpen, onClose, defaultDate, isDemo = false }
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4" onMouseDown={(e) => { if (panelRef.current && !panelRef.current.contains(e.target as Node)) handleClose(); }}>
       <div ref={panelRef} role="dialog" aria-modal="true" aria-labelledby="ai-modal-title" className="w-full max-w-2xl rounded-2xl bg-popover shadow-xl ring-1 ring-border max-h-[90vh] flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="border-b border-border px-6 pt-4 pb-3 bg-popover sticky top-0 z-10">
-          <div className="flex items-center justify-between">
-            <h2 id="ai-modal-title" className="text-lg font-semibold text-popover-foreground">AI Assistant</h2>
+        <div className="border-b border-border px-6 pt-4 pb-0 bg-popover sticky top-0 z-10">
+          <div className="flex items-center justify-between mb-3">
+            <h2 id="ai-modal-title" className="text-lg font-semibold text-popover-foreground">AI Summary</h2>
             <button onClick={handleClose} aria-label="Close" className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded-md hover:bg-muted"><X className="h-4 w-4" aria-hidden="true" /></button>
+          </div>
+          <div className="flex gap-1 -mb-px">
+            {(['summarize', 'prompts'] as const).map((tab) => (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => setActiveTab(tab)}
+                className={[
+                  'px-4 py-2 text-sm font-medium border-b-2 transition-colors capitalize',
+                  activeTab === tab
+                    ? 'border-primary text-foreground'
+                    : 'border-transparent text-muted-foreground hover:text-foreground',
+                ].join(' ')}
+              >
+                {tab === 'summarize' ? 'Summarize' : 'Prompts'}
+              </button>
+            ))}
           </div>
         </div>
 
         {/* Body */}
+        {activeTab === 'summarize' ? (
+          <>
         <div className="flex-1 overflow-y-auto px-6 py-4">
           <div>
             <div className="space-y-6">
@@ -465,6 +593,108 @@ export default function AiModal({ isOpen, onClose, defaultDate, isDemo = false }
             {summaryLoading ? 'Generating...' : 'Generate Summary'}
           </button>
         </div>
+          </>
+        ) : (
+          /* Prompts tab */
+          <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3">
+            {promptsLoading && prompts.length === 0 ? (
+              <div className="text-sm text-muted-foreground py-8 text-center">Loading prompts…</div>
+            ) : (
+              <>
+                {prompts.map((prompt) => {
+                  const editing = getEditing(prompt);
+                  const dirty = isDirty(prompt);
+                  const err = promptErrors[prompt.id];
+                  return (
+                    <div key={prompt.id} className="rounded-xl border border-border bg-card px-4 py-3 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={editing.label}
+                          onChange={(e) => handleEditChange(prompt.id, 'label', e.target.value)}
+                          className="flex-1 rounded-lg border border-input bg-muted/50 px-2 py-1 text-sm font-medium text-foreground outline-none focus:border-primary"
+                          placeholder="Template name"
+                        />
+                        {prompt.is_builtin && (
+                          <span className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground bg-muted rounded px-1.5 py-0.5">built-in</span>
+                        )}
+                      </div>
+                      <textarea
+                        value={editing.value}
+                        onChange={(e) => handleEditChange(prompt.id, 'value', e.target.value)}
+                        rows={3}
+                        className="w-full rounded-lg border border-input bg-muted/50 px-2 py-1.5 text-sm text-foreground outline-none focus:border-primary resize-none"
+                        placeholder="Prompt instructions…"
+                      />
+                      {err && <p className="text-xs text-destructive">{err}</p>}
+                      <div className="flex items-center gap-2 justify-end">
+                        {dirty && (
+                          <button
+                            type="button"
+                            onClick={() => void handleSaveEdit(prompt)}
+                            className="rounded-lg px-3 py-1 text-xs font-medium bg-primary text-primary-foreground transition-opacity hover:opacity-90"
+                          >
+                            Save
+                          </button>
+                        )}
+                        {prompt.is_builtin && isBuiltinOverridden(prompt) && (
+                          <button
+                            type="button"
+                            onClick={() => void handleResetBuiltin(prompt)}
+                            className="rounded-lg px-3 py-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                          >
+                            Reset to default
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => void handleDeletePrompt(prompt.id)}
+                          className="rounded-lg px-3 py-1 text-xs text-destructive hover:bg-destructive/10 transition-colors"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* Add new prompt */}
+                {addingNew ? (
+                  <div className="rounded-xl border border-dashed border-border px-4 py-3 space-y-2">
+                    <input
+                      type="text"
+                      value={newLabel}
+                      onChange={(e) => setNewLabel(e.target.value)}
+                      placeholder="Template name"
+                      className="w-full rounded-lg border border-input bg-muted/50 px-2 py-1 text-sm font-medium text-foreground outline-none focus:border-primary"
+                      autoFocus
+                    />
+                    <textarea
+                      value={newValue}
+                      onChange={(e) => setNewValue(e.target.value)}
+                      rows={3}
+                      placeholder="Prompt instructions…"
+                      className="w-full rounded-lg border border-input bg-muted/50 px-2 py-1.5 text-sm text-foreground outline-none focus:border-primary resize-none"
+                    />
+                    {newError && <p className="text-xs text-destructive">{newError}</p>}
+                    <div className="flex gap-2 justify-end">
+                      <button type="button" onClick={() => { setAddingNew(false); setNewLabel(''); setNewValue(''); setNewError(null); }} className="rounded-lg px-3 py-1 text-xs text-muted-foreground hover:text-foreground">Cancel</button>
+                      <button type="button" onClick={() => void handleAddNew()} className="rounded-lg px-3 py-1 text-xs font-medium bg-primary text-primary-foreground hover:opacity-90">Add</button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setAddingNew(true)}
+                    className="w-full rounded-xl border border-dashed border-border py-3 text-sm text-muted-foreground hover:text-foreground hover:border-border/80 transition-colors"
+                  >
+                    + Add prompt
+                  </button>
+                )}
+              </>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

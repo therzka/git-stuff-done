@@ -447,13 +447,6 @@ export default function Dashboard() {
           >
             <FileText className="h-4 w-4" aria-hidden="true" />
           </button>
-          <button
-            onClick={() => setShowSettings((s) => !s)}
-            className="rounded-lg px-2 py-1.5 text-sm text-muted-foreground transition hover:bg-accent hover:text-accent-foreground"
-            aria-label="Settings"
-          >
-            <Settings className="h-4 w-4" aria-hidden="true" />
-          </button>
           <div className="inline-flex items-center rounded-xl border border-border bg-muted/40 p-0.5">
             <button
               onClick={() => setLayoutMode('grid')}
@@ -498,6 +491,13 @@ export default function Dashboard() {
             title="Show/hide panels"
           >
             <Menu className="h-4 w-4" aria-hidden="true" />
+          </button>
+          <button
+            onClick={() => setShowSettings((s) => !s)}
+            className="rounded-lg px-2 py-1.5 text-sm text-muted-foreground transition hover:bg-accent hover:text-accent-foreground"
+            aria-label="Settings"
+          >
+            <Settings className="h-4 w-4" aria-hidden="true" />
           </button>
         </div>
       </header>

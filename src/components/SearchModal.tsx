@@ -526,36 +526,41 @@ export default function SearchModal({
       <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={handleClose} />
 
       <div className="relative z-10 w-full max-w-2xl mx-4 rounded-2xl ring-1 ring-border bg-popover shadow-xl flex flex-col max-h-[90vh]">
-        <div className="flex items-center gap-3 px-6 py-4 border-b border-border shrink-0">
-          <Search className="h-4 w-4 text-muted-foreground shrink-0" aria-hidden="true" />
-          <input
-            ref={inputRef}
-            value={query}
-            onChange={(e) => {
-              setQuery(e.target.value);
-            }}
-            onKeyDown={handleInputKeyDown}
-            placeholder="Search your work logs…"
-            className={`flex-1 ${INPUT_CLASSES}`}
-            maxLength={200}
-            autoComplete="off"
-            spellCheck={false}
-            disabled={searchLoading}
-          />
-          {anyLoading && <Loader2 className="h-4 w-4 text-muted-foreground animate-spin shrink-0" aria-hidden="true" />}
-          <button
-            onClick={handleClose}
-            className="rounded-md p-1 text-muted-foreground hover:text-foreground transition-colors shrink-0"
-            aria-label="Close"
-          >
-            <X className="h-4 w-4" aria-hidden="true" />
-          </button>
+        <div className="px-6 pt-4 pb-3 border-b border-border shrink-0 space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-popover-foreground">Work Log Search</h2>
+            <button
+              onClick={handleClose}
+              className="rounded-md p-1 text-muted-foreground hover:text-foreground transition-colors shrink-0"
+              aria-label="Close"
+            >
+              <X className="h-4 w-4" aria-hidden="true" />
+            </button>
+          </div>
+          <div className="flex items-center gap-3">
+            <Search className="h-4 w-4 text-muted-foreground shrink-0" aria-hidden="true" />
+            <input
+              ref={inputRef}
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value);
+              }}
+              onKeyDown={handleInputKeyDown}
+              placeholder="Search your work logs…"
+              className={`flex-1 ${INPUT_CLASSES}`}
+              maxLength={200}
+              autoComplete="off"
+              spellCheck={false}
+              disabled={searchLoading}
+            />
+            {anyLoading && <Loader2 className="h-4 w-4 text-muted-foreground animate-spin shrink-0" aria-hidden="true" />}
+          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto px-6 py-4">
           <div className="space-y-5">
             <div className="space-y-3">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+              <div className="flex flex-wrap items-end gap-3">
                 <div>
                   <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1.5">
                     Mode
@@ -582,18 +587,28 @@ export default function SearchModal({
                   </div>
                 </div>
 
-                <div className="flex justify-start sm:justify-end">
-                  <button
-                    type="button"
-                    onClick={() => setDateRangeOpen((open) => !open)}
-                    className={[MUTED_BUTTON_CLASSES, 'inline-flex items-center gap-2'].join(' ')}
-                  >
-                    📅 Date range
-                    <ChevronDown
-                      className={['h-3.5 w-3.5 transition-transform duration-200', dateRangeOpen ? 'rotate-180' : ''].join(' ')}
-                      aria-hidden="true"
-                    />
-                  </button>
+                <div>
+                  <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1.5">
+                    Date range
+                  </div>
+                  <div className="inline-flex rounded-xl bg-muted p-1">
+                    <button
+                      type="button"
+                      onClick={() => setDateRangeOpen((open) => !open)}
+                      className={[
+                        'rounded-lg px-3 py-1.5 text-sm font-medium transition-colors inline-flex items-center gap-1.5',
+                        dateRangeOpen
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-muted text-muted-foreground hover:text-foreground',
+                      ].join(' ')}
+                    >
+                      📅
+                      <ChevronDown
+                        className={['h-3.5 w-3.5 transition-transform duration-200', dateRangeOpen ? 'rotate-180' : ''].join(' ')}
+                        aria-hidden="true"
+                      />
+                    </button>
+                  </div>
                 </div>
               </div>
 
