@@ -583,47 +583,47 @@ export default function AiModal({ isOpen, onClose, defaultDate, isDemo = false }
           </div>
         </div>
 
-        <div className="border-t border-border px-6 py-4 flex justify-between items-center bg-popover sticky bottom-0 z-10">
-          <div className="flex gap-2">
+        <div className="border-t border-border px-6 py-3 flex flex-col gap-2 bg-popover sticky bottom-0 z-10">
+          {summaryResult && (
+            <div className="flex gap-2 flex-wrap border-b border-border pb-3">
+              <button
+                onClick={() => navigator.clipboard.writeText(summaryResult)}
+                className="rounded-xl px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:shadow-sm border border-transparent hover:border-border transition-all"
+              >
+                Copy
+              </button>
+              <button
+                onClick={downloadMarkdown}
+                className="rounded-xl px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:shadow-sm border border-transparent hover:border-border transition-all"
+              >
+                Download .md
+              </button>
+              <button
+                onClick={saveToRepo}
+                disabled={saving}
+                className="rounded-xl px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:shadow-sm border border-transparent hover:border-border transition-all disabled:opacity-50"
+              >
+                {saving ? 'Committing...' : 'Save & Commit'}
+              </button>
+            </div>
+          )}
+          <div className="flex justify-between items-center">
             <button
               onClick={exportRawLogs}
               disabled={exportLoading || isDemo}
               title="Downloads all work log entries between the selected dates as a single markdown file."
-              className="rounded-xl border border-border px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="rounded-xl border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-muted transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {exportLoading ? 'Exporting...' : 'Export Raw Logs'}
             </button>
-            {summaryResult && (
-              <>
-                <button
-                  onClick={() => navigator.clipboard.writeText(summaryResult)}
-                  className="rounded-xl px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:shadow-sm border border-transparent hover:border-border transition-all"
-                >
-                  Copy
-                </button>
-                <button
-                  onClick={downloadMarkdown}
-                  className="rounded-xl px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:shadow-sm border border-transparent hover:border-border transition-all"
-                >
-                  Download .md
-                </button>
-                <button
-                  onClick={saveToRepo}
-                  disabled={saving}
-                  className="rounded-xl px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:shadow-sm border border-transparent hover:border-border transition-all disabled:opacity-50"
-                >
-                  {saving ? 'Committing...' : 'Save & Commit'}
-                </button>
-              </>
-            )}
+            <button
+              onClick={generateSummary}
+              disabled={summaryLoading}
+              className="rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition-all hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {summaryLoading ? 'Generating...' : 'Generate Summary'}
+            </button>
           </div>
-          <button
-            onClick={generateSummary}
-            disabled={summaryLoading}
-            className="rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition-all hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {summaryLoading ? 'Generating...' : 'Generate Summary'}
-          </button>
         </div>
           </>
         ) : (

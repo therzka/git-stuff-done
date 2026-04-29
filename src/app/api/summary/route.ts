@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { readLog, readRichLog } from '@/lib/files';
 import { callCopilot } from '@/lib/copilot';
 
+export const maxDuration = 300;
+
 export async function POST(req: Request) {
   try {
     const { startDate, endDate, prompt, model } = await req.json();
@@ -49,8 +51,8 @@ ${prompt || 'Summarize the key achievements and tasks worked on.'}
 ### Work Logs
 ${fullLogContent}`;
 
-    // 3. Call Copilot
-    const summary = await callCopilot(systemPrompt, userPrompt, model);
+    // 3. Call Copilot (5 minute timeout)
+    const summary = await callCopilot(systemPrompt, userPrompt, model, 300_000);
 
     return NextResponse.json({ summary });
 
