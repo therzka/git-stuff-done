@@ -604,6 +604,7 @@ export type GitHubNotification = {
   type: string;
   updatedAt: string;
   unread: boolean;
+  prState?: 'open' | 'draft';
 };
 
 const RELEVANT_REASONS = new Set([
@@ -639,12 +640,17 @@ export async function fetchNotifications(options?: {
   const withState = await Promise.all(
     filtered.map(async (n) => {
       if (!n.subject.url) return null;
+      let prState: 'open' | 'draft' | undefined;
       try {
         const { data: subject } = await octokit.request("GET {url}", {
           url: n.subject.url,
         });
-        const state = (subject as { state?: string }).state;
+        const s = subject as { state?: string; draft?: boolean };
+        const state = s.state;
         if (state && state !== "open") return null;
+        if (n.subject.type === "PullRequest") {
+          prState = s.draft ? 'draft' : 'open';
+        }
       } catch {
         // If we can't fetch state, include it anyway
       }
@@ -657,7 +663,8 @@ export async function fetchNotifications(options?: {
         type: n.subject.type,
         updatedAt: n.updated_at,
         unread: n.unread,
-      };
+        ...(prState !== undefined ? { prState } : {}),
+      } as GitHubNotification;
     }),
   );
 

@@ -14,6 +14,7 @@ type Notification = {
   type: string;
   updatedAt: string;
   unread: boolean;
+  prState?: 'open' | 'draft';
 };
 
 function timeAgo(dateString: string): string {
@@ -48,6 +49,21 @@ function reasonBadge(reason: string) {
       className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${colors}`}
     >
       {label}
+    </span>
+  );
+}
+
+function prStateBadge(prState: 'open' | 'draft') {
+  if (prState === 'draft') {
+    return (
+      <span className="inline-block rounded-full px-2 py-0.5 text-xs font-medium bg-zinc-100 text-zinc-600 ring-1 ring-inset ring-zinc-400/30 dark:bg-zinc-500/10 dark:text-zinc-400 dark:ring-zinc-500/20">
+        Draft
+      </span>
+    );
+  }
+  return (
+    <span className="inline-block rounded-full px-2 py-0.5 text-xs font-medium bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20 dark:bg-emerald-500/10 dark:text-emerald-400 dark:ring-emerald-500/20">
+      Open
     </span>
   );
 }
@@ -224,6 +240,7 @@ export default function GitHubNotifications({ isDemo = false, onInsert, refreshT
                         {n.repoFullName}
                       </span>
                       {reasonBadge(n.reason)}
+                      {n.reason === 'review_requested' && n.prState && prStateBadge(n.prState)}
                     </div>
                   </div>
                 </div>
