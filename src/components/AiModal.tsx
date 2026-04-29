@@ -6,13 +6,12 @@ import { useModels } from '@/hooks/useModels';
 import MarkdownViewer from '@/components/MarkdownViewer';
 import { DEMO_SUMMARY_RESULT } from '@/lib/demo';
 
-const DEFAULT_PROMPTS = [
-  { label: 'Daily Standup', value: 'Summarize my work for a daily standup meeting. Focus on what was completed, what is in progress, and any blockers.' },
-  { label: 'Weekly Report', value: 'Create a weekly report summarizing key achievements, PRs merged, and tasks completed. Group by project or topic.' },
-  { label: 'Detailed Changelog', value: 'List all technical changes, bug fixes, and refactors in a changelog format.' },
-  { label: 'AI Usage', value: 'Summarize how I used AI tools this past week. Include mentions of Copilot, AI-generated code, AI-assisted debugging, pair programming with AI, and any AI-related workflow patterns. Note which tasks AI helped with and how.' },
-  { label: 'Custom', value: '' },
-];
+interface SummaryPrompt {
+  id: string;
+  label: string;
+  value: string;
+  is_builtin: boolean;
+}
 
 interface AiModalProps {
   isOpen: boolean;
@@ -36,31 +35,128 @@ export default function AiModal({ isOpen, onClose, defaultDate, isDemo = false }
     }
   }, [models, selectedModel]);
 
+  function todayISO() {
+    return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+  }
+
+  function daysAgoISO(days: number) {
+    const d = new Date();
+    d.setDate(d.getDate() - days);
+    return d.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+  }
+
   // Summarize pane state
   const [startDate, setStartDate] = useState(defaultDate);
   const [endDate, setEndDate] = useState(defaultDate);
-  const [selectedPromptIdx, setSelectedPromptIdx] = useState(0);
-  const [customPrompt, setCustomPrompt] = useState(DEFAULT_PROMPTS[0].value);
+  const [prompts, setPrompts] = useState<SummaryPrompt[]>([]);
+  const [promptsLoading, setPromptsLoading] = useState(false);
+  const [selectedPromptId, setSelectedPromptId] = useState('daily-standup');
+  const [customPrompt, setCustomPrompt] = useState('');
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [summaryResult, setSummaryResult] = useState<string | null>(null);
   const [summaryError, setSummaryError] = useState<string | null>(null);
+  const [savingPrompt, setSavingPrompt] = useState(false);
+  const [newPromptLabel, setNewPromptLabel] = useState('');
+  const [promptSaveError, setPromptSaveError] = useState<string | null>(null);
+
+  const selectedPrompt = prompts.find((prompt) => prompt.id === selectedPromptId);
+  const dailyStandupValue = prompts.find((prompt) => prompt.id === 'daily-standup')?.value ?? '';
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setPromptsLoading(true);
+    fetch('/api/summary-prompts')
+      .then((r) => r.json())
+      .then((data) => setPrompts(data.prompts ?? []))
+      .catch(() => {})
+      .finally(() => setPromptsLoading(false));
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen || customPrompt || !selectedPrompt) return;
+    setCustomPrompt(selectedPrompt.value);
+  }, [customPrompt, isOpen, selectedPrompt]);
+
+  const handlePromptSelect = useCallback((prompt: SummaryPrompt) => {
+    setSelectedPromptId(prompt.id);
+    setCustomPrompt(prompt.value);
+
+    if (prompt.id === 'daily-standup') {
+      const today = todayISO();
+      setStartDate(today);
+      setEndDate(today);
+      return;
+    }
+
+    if (prompt.id === 'weekly-report' || prompt.id === 'ai-usage') {
+      setStartDate(daysAgoISO(7));
+      setEndDate(todayISO());
+    }
+  }, []);
+
+  const handleSavePrompt = async () => {
+    const label = newPromptLabel.trim();
+    if (!label) return;
+
+    setPromptSaveError(null);
+
+    try {
+      const res = await fetch('/api/summary-prompts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ label, value: customPrompt }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setPromptSaveError(data.error ?? 'Failed to save');
+        return;
+      }
+
+      const data = await res.json();
+      setPrompts((prev) => [...prev, data.prompt]);
+      setSelectedPromptId(data.prompt.id);
+      setSavingPrompt(false);
+      setNewPromptLabel('');
+    } catch {
+      setPromptSaveError('Failed to save template');
+    }
+  };
+
+  const handleDeletePrompt = async (id: string) => {
+    try {
+      const res = await fetch(`/api/summary-prompts?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+      if (!res.ok) return;
+
+      setPrompts((prev) => prev.filter((prompt) => prompt.id !== id));
+      if (selectedPromptId === id) {
+        setSelectedPromptId('daily-standup');
+        setCustomPrompt(dailyStandupValue);
+      }
+    } catch {
+      // Silent on purpose.
+    }
+  };
 
   // --- Close / reset ---
 
   const handleClose = useCallback(() => {
     setStartDate(defaultDate);
     setEndDate(defaultDate);
-    setCustomPrompt(DEFAULT_PROMPTS[0].value);
-    setSelectedPromptIdx(0);
+    setSelectedPromptId('daily-standup');
+    setCustomPrompt(dailyStandupValue);
     setSummaryResult(null);
     setSummaryError(null);
     setSummaryLoading(false);
     setSaving(false);
     setSaveMessage(null);
+    setSavingPrompt(false);
+    setNewPromptLabel('');
+    setPromptSaveError(null);
     onClose();
-  }, [defaultDate, onClose]);
+  }, [dailyStandupValue, defaultDate, onClose]);
 
   // Escape handler
   useEffect(() => {
@@ -80,16 +176,6 @@ export default function AiModal({ isOpen, onClose, defaultDate, isDemo = false }
   }, [isOpen, isDemo]);
 
   if (!isOpen) return null;
-
-  function todayISO() {
-    return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
-  }
-
-  function daysAgoISO(days: number) {
-    const d = new Date();
-    d.setDate(d.getDate() - days);
-    return d.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
-  }
 
   // --- Summarize logic ---
 
@@ -131,20 +217,19 @@ export default function AiModal({ isOpen, onClose, defaultDate, isDemo = false }
 
   const saveToRepo = async () => {
     if (!summaryResult) return;
+
+    const matchedPrompt = prompts.find((prompt) => prompt.value === customPrompt);
+    const slug = matchedPrompt ? matchedPrompt.label.toLowerCase().replace(/\s+/g, '-') : 'custom-summary';
+
     if (isDemo) {
-      const slug = DEFAULT_PROMPTS.find(p => p.value === customPrompt)?.label.toLowerCase().replace(/\s+/g, '-') ?? 'custom-summary';
       setSaveMessage(`summaries/${endDate}-${slug}.md`);
       return;
     }
+
     setSaving(true);
     setSummaryError(null);
 
     try {
-      const matchedPrompt = DEFAULT_PROMPTS.find(p => p.value === customPrompt);
-      const slug = matchedPrompt && matchedPrompt.label !== 'Custom'
-        ? matchedPrompt.label.toLowerCase().replace(/\s+/g, '-')
-        : 'custom-summary';
-
       const filename = `${endDate}-${slug}.md`;
 
       const res = await fetch('/api/summary/save', {
@@ -219,30 +304,41 @@ export default function AiModal({ isOpen, onClose, defaultDate, isDemo = false }
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label htmlFor="ai-summary-prompt-template" className="block text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wider">Prompt Template</label>
-                  <select
-                    id="ai-summary-prompt-template"
-                    value={selectedPromptIdx}
-                    onChange={(e) => {
-                      const idx = Number(e.target.value);
-                      setSelectedPromptIdx(idx);
-                      setCustomPrompt(DEFAULT_PROMPTS[idx].value);
-                      const label = DEFAULT_PROMPTS[idx].label;
-                      if (label === 'Daily Standup') {
-                        const today = todayISO();
-                        setStartDate(today);
-                        setEndDate(today);
-                      } else if (label === 'Weekly Report' || label === 'AI Usage') {
-                        setStartDate(daysAgoISO(7));
-                        setEndDate(todayISO());
-                      }
-                    }}
-                    className="w-full rounded-xl border border-input bg-muted/50 px-3 py-2 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-ring/20 transition-all cursor-pointer"
-                  >
-                    {DEFAULT_PROMPTS.map((p, idx) => (
-                      <option key={idx} value={idx}>{p.label}</option>
-                    ))}
-                  </select>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wider">Template</label>
+                  {promptsLoading && prompts.length === 0 ? (
+                    <div className="rounded-xl border border-input bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
+                      Loading templates...
+                    </div>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {prompts.map((prompt) => (
+                        <div key={prompt.id} className="relative group inline-flex">
+                          <button
+                            type="button"
+                            onClick={() => handlePromptSelect(prompt)}
+                            className={[
+                              'rounded-full border px-3 py-1 text-xs font-medium transition-colors',
+                              selectedPromptId === prompt.id
+                                ? 'bg-primary/10 border-primary/30 text-primary'
+                                : 'border-border text-muted-foreground hover:text-foreground hover:bg-muted',
+                            ].join(' ')}
+                          >
+                            {prompt.label}
+                          </button>
+                          {!prompt.is_builtin && (
+                            <button
+                              type="button"
+                              onClick={() => void handleDeletePrompt(prompt.id)}
+                              className="absolute -top-1 -right-1 hidden group-hover:flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[10px] leading-none"
+                              aria-label={`Delete ${prompt.label}`}
+                            >
+                              ×
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label htmlFor="ai-summary-model" className="block text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wider">AI Model</label>
@@ -270,6 +366,39 @@ export default function AiModal({ isOpen, onClose, defaultDate, isDemo = false }
                   className="w-full h-32 rounded-xl border border-input bg-muted/50 px-3 py-2 text-sm text-foreground placeholder-muted-foreground outline-none focus:border-primary focus:ring-2 focus:ring-ring/20 resize-none transition-all"
                   placeholder="Enter custom instructions for the summary..."
                 />
+                <div className="flex items-center gap-2 mt-1">
+                  {savingPrompt ? (
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={newPromptLabel}
+                        onChange={(e) => setNewPromptLabel(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') void handleSavePrompt();
+                          if (e.key === 'Escape') setSavingPrompt(false);
+                        }}
+                        placeholder="Template name…"
+                        className="rounded-lg border border-input bg-muted/50 px-2 py-1 text-xs text-foreground outline-none focus:border-primary"
+                        autoFocus
+                      />
+                      <button onClick={() => void handleSavePrompt()} className="text-xs text-primary hover:underline">Save</button>
+                      <button onClick={() => setSavingPrompt(false)} className="text-xs text-muted-foreground hover:underline">Cancel</button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setNewPromptLabel('');
+                        setPromptSaveError(null);
+                        setSavingPrompt(true);
+                      }}
+                      className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      + Save as template
+                    </button>
+                  )}
+                  {promptSaveError && <span className="text-xs text-destructive">{promptSaveError}</span>}
+                </div>
               </div>
 
               {/* Loading */}

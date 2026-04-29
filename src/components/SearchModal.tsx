@@ -10,7 +10,6 @@ import {
   Square,
   CheckCircle2,
   AlertTriangle,
-  Calendar,
   ChevronDown,
 } from 'lucide-react';
 import { useModels } from '@/hooks/useModels';
@@ -31,14 +30,6 @@ interface LogSearchResult {
 }
 
 type SearchMode = 'text' | 'ai' | 'ai-keywords';
-
-const SEARCH_PRESETS = [
-  { label: 'What did I work on?', value: 'What did I work on last week?' },
-  { label: 'Blockers?', value: 'What blockers or issues did I run into?' },
-  { label: 'What PRs?', value: 'What pull requests did I open or review?' },
-  { label: 'AI usage?', value: 'How did I use AI tools recently?' },
-  { label: 'Custom ✏️', value: '' },
-] as const;
 
 const INPUT_CLASSES =
   'rounded-xl border border-input bg-muted/50 px-3 py-2 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-ring/20 transition-all';
@@ -104,7 +95,6 @@ export default function SearchModal({
 }: SearchModalProps) {
   const [query, setQuery] = useState('');
   const [mode, setMode] = useState<SearchMode>('text');
-  const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
   const [dateRangeOpen, setDateRangeOpen] = useState(false);
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState(defaultDate);
@@ -158,7 +148,6 @@ export default function SearchModal({
     aiAbortRef.current = null;
     setQuery('');
     setMode('text');
-    setSelectedPreset(null);
     setDateRangeOpen(false);
     setFromDate('');
     setToDate(defaultDate);
@@ -498,25 +487,6 @@ export default function SearchModal({
     URL.revokeObjectURL(url);
   }, [searchResult]);
 
-  const handlePresetClick = useCallback(
-    (label: string, value: string) => {
-      setSelectedPreset(label);
-      setQuery(value);
-      setTextError(null);
-      setSearchError(null);
-      setSearchSaveMessage(null);
-      setShowNoAnswerTips(false);
-
-      if (mode === 'text') {
-        if (debounceRef.current) clearTimeout(debounceRef.current);
-        void runTextSearch(value);
-      } else {
-        window.setTimeout(() => inputRef.current?.focus(), 0);
-      }
-    },
-    [mode, runTextSearch],
-  );
-
   const handleInputKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
       if (e.key !== 'Enter') return;
@@ -563,7 +533,6 @@ export default function SearchModal({
             value={query}
             onChange={(e) => {
               setQuery(e.target.value);
-              setSelectedPreset(null);
             }}
             onKeyDown={handleInputKeyDown}
             placeholder="Search your work logs…"
@@ -585,32 +554,8 @@ export default function SearchModal({
 
         <div className="flex-1 overflow-y-auto px-6 py-4">
           <div className="space-y-5">
-            <div>
-              <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1.5">
-                Presets
-              </div>
-              <div className="flex gap-2 overflow-x-auto pb-1">
-                {SEARCH_PRESETS.map((preset) => {
-                  const isActive = selectedPreset === preset.label;
-                  return (
-                    <button
-                      key={preset.label}
-                      type="button"
-                      onClick={() => handlePresetClick(preset.label, preset.value)}
-                      className={[
-                        'rounded-full border border-border px-3 py-1 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors whitespace-nowrap',
-                        isActive ? 'bg-primary/10 border-primary/30 text-primary' : '',
-                      ].join(' ')}
-                    >
-                      {preset.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
             <div className="space-y-3">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                 <div>
                   <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1.5">
                     Mode
@@ -643,14 +588,9 @@ export default function SearchModal({
                     onClick={() => setDateRangeOpen((open) => !open)}
                     className={[MUTED_BUTTON_CLASSES, 'inline-flex items-center gap-2'].join(' ')}
                   >
-                    <Calendar className="h-4 w-4" aria-hidden="true" />
-                    <span>📅 Date range</span>
-                    {activeDateRange && <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] text-primary">On</span>}
+                    📅 Date range
                     <ChevronDown
-                      className={[
-                        'h-4 w-4 transition-transform',
-                        dateRangeOpen ? 'rotate-180' : '',
-                      ].join(' ')}
+                      className={['h-3.5 w-3.5 transition-transform duration-200', dateRangeOpen ? 'rotate-180' : ''].join(' ')}
                       aria-hidden="true"
                     />
                   </button>

@@ -22,7 +22,7 @@ import {
   verticalListSortingStrategy,
   arrayMove,
 } from '@dnd-kit/sortable';
-import { Upload, Moon, Sun, BarChart2, Search, Settings, LayoutGrid, LayoutList, Menu, X, ChevronLeft, ChevronRight, FileText, Check, Minus, Sparkles } from 'lucide-react';
+import { Upload, Moon, Sun, BarChart2, Search, Settings, LayoutGrid, LayoutList, Menu, X, ChevronLeft, ChevronRight, FileText, Check, Minus } from 'lucide-react';
 import RawWorkLog from './RawWorkLog';
 import TodoList from './TodoList';
 import MyPRs from './MyPRs';
@@ -127,10 +127,7 @@ export default function Dashboard() {
   const [commitState, setCommitState] = useState<CommitState>('idle');
   const [date, setDate] = useState(todayISO);
   const [showAiModal, setShowAiModal] = useState(false);
-  const [aiMenuOpen, setAiMenuOpen] = useState(false);
-  const aiMenuBtnRef = useRef<HTMLButtonElement>(null);
-  const aiMenuRef = useRef<HTMLDivElement>(null);
-  const [aiMenuPos, setAiMenuPos] = useState({ top: 0, left: 0 });
+
   const [showSummaries, setShowSummaries] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const insertAtCursorRef = useRef<((text: string) => void) | null>(null);
@@ -261,18 +258,7 @@ export default function Dashboard() {
     if (panelMenuOpen) document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
   }, [panelMenuOpen]);
-  useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (
-        aiMenuRef.current && !aiMenuRef.current.contains(e.target as Node) &&
-        aiMenuBtnRef.current && !aiMenuBtnRef.current.contains(e.target as Node)
-      ) {
-        setAiMenuOpen(false);
-      }
-    }
-    if (aiMenuOpen) document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
-  }, [aiMenuOpen]);
+
 
   // Avoid hydration mismatch
   useEffect(() => {
@@ -438,19 +424,12 @@ export default function Dashboard() {
             {mounted ? (theme === 'dark' ? <Moon className="h-4 w-4" aria-hidden="true" /> : <Sun className="h-4 w-4" aria-hidden="true" />) : <span className="h-4 w-4 inline-block" />}
           </button>
           <button
-            ref={aiMenuBtnRef}
-            onClick={() => {
-              if (!aiMenuOpen && aiMenuBtnRef.current) {
-                const rect = aiMenuBtnRef.current.getBoundingClientRect();
-                setAiMenuPos({ top: rect.bottom + 8, left: rect.right });
-              }
-              setAiMenuOpen((o) => !o);
-            }}
+            onClick={() => setShowAiModal(true)}
             className="rounded-lg px-2 py-1.5 text-sm text-muted-foreground transition hover:bg-accent hover:text-accent-foreground"
-            aria-label="AI Assistant"
-            title="AI Assistant"
+            aria-label="Generate Summary"
+            title="Generate Summary"
           >
-            <Sparkles className="h-4 w-4" aria-hidden="true" />
+            <BarChart2 className="h-4 w-4" aria-hidden="true" />
           </button>
           <button
             onClick={() => setShowSearch(true)}
@@ -548,25 +527,6 @@ export default function Dashboard() {
           )
         : null}
 
-      {/* AI menu dropdown (portal) */}
-      {typeof document !== 'undefined' && aiMenuOpen
-        ? createPortal(
-            <div
-              ref={aiMenuRef}
-              style={{ position: 'fixed', top: aiMenuPos.top, left: aiMenuPos.left, transform: 'translateX(-100%)', zIndex: 9999 }}
-              className="min-w-52 whitespace-nowrap rounded-xl border border-border bg-popover shadow-xl p-2 select-none"
-            >
-              <button
-                onClick={() => { setShowAiModal(true); setAiMenuOpen(false); }}
-                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors"
-              >
-                <BarChart2 className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                Generate Summary
-              </button>
-            </div>,
-            document.body,
-          )
-        : null}
 
       <SearchModal
         isOpen={showSearch}
