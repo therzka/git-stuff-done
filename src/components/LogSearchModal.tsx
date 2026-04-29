@@ -134,12 +134,12 @@ export default function LogSearchModal({ isOpen, onClose, onNavigate }: LogSearc
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={onClose} />
 
       {/* Panel */}
-      <div className="relative z-10 w-full max-w-2xl mx-4 rounded-2xl border border-border bg-popover shadow-2xl flex flex-col max-h-[80vh]">
+      <div className="relative z-10 w-full max-w-2xl mx-4 rounded-2xl ring-1 ring-border bg-popover shadow-xl flex flex-col max-h-[90vh]">
         {/* Header */}
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-border shrink-0">
+        <div className="flex items-center gap-3 px-6 py-4 border-b border-border shrink-0">
           <Search className="h-4 w-4 text-muted-foreground shrink-0" aria-hidden="true" />
           <input
             ref={inputRef}
@@ -155,7 +155,7 @@ export default function LogSearchModal({ isOpen, onClose, onNavigate }: LogSearc
           {loading && <Loader2 className="h-4 w-4 text-muted-foreground animate-spin shrink-0" aria-hidden="true" />}
           <button
             onClick={onClose}
-            className="rounded-lg p-1 text-muted-foreground hover:text-foreground transition-colors shrink-0"
+            className="rounded-md p-1 text-muted-foreground hover:text-foreground transition-colors shrink-0"
             aria-label="Close"
           >
             <X className="h-4 w-4" aria-hidden="true" />
@@ -163,7 +163,7 @@ export default function LogSearchModal({ isOpen, onClose, onNavigate }: LogSearc
         </div>
 
         {/* Results */}
-        <div className="overflow-y-auto flex-1 p-2">
+        <div className="overflow-y-auto flex-1 px-6 py-4">
           {error && (
             <p className="px-3 py-4 text-sm text-destructive text-center">{error}</p>
           )}

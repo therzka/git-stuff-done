@@ -104,11 +104,11 @@ export default function SlackThreadModal({ isOpen, onClose, url, onInsert }: Sla
     >
       <div
         ref={panelRef}
-        className="bg-card border border-border rounded-lg shadow-xl flex flex-col w-full max-w-2xl max-h-[80vh]"
+        className="bg-popover ring-1 ring-border rounded-2xl shadow-xl flex flex-col w-full max-w-2xl max-h-[90vh]"
         onMouseDown={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
           <div className="flex items-center gap-2 min-w-0">
             {/* Slack icon */}
             <svg className="shrink-0 text-muted-foreground" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
@@ -119,7 +119,7 @@ export default function SlackThreadModal({ isOpen, onClose, url, onInsert }: Sla
           </div>
           <button
             onClick={onClose}
-            className="shrink-0 rounded p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            className="shrink-0 rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
             aria-label="Close"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -129,7 +129,7 @@ export default function SlackThreadModal({ isOpen, onClose, url, onInsert }: Sla
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-auto p-4">
+        <div className="flex-1 overflow-auto px-6 py-4">
           {loading && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -153,16 +153,16 @@ export default function SlackThreadModal({ isOpen, onClose, url, onInsert }: Sla
 
         {/* Footer */}
         {markdown !== null && !loading && !error && (
-          <div className="flex justify-end gap-2 px-4 py-3 border-t border-border shrink-0">
+          <div className="flex justify-end gap-2 px-6 py-4 border-t border-border shrink-0">
             <button
               onClick={onClose}
-              className="px-3 py-1.5 text-sm rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              className="px-3 py-1.5 text-sm rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
             >
               Cancel
             </button>
             <button
               onClick={handleInsert}
-              className="px-3 py-1.5 text-sm rounded bg-primary text-primary-foreground hover:bg-primary/90 transition-colors font-medium"
+              className="px-3 py-1.5 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors font-medium"
             >
               Insert into log
             </button>
