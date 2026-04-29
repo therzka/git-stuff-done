@@ -31,6 +31,7 @@ import GitHubNotifications from './GitHubNotifications';
 import AgentSessions from './AgentSessions';
 import AiModal from './AiModal';
 import SummariesModal from './SummariesModal';
+import LogSearchModal from './LogSearchModal';
 import CalendarPicker from './CalendarPicker';
 import { GITHUB_ORG } from '@/lib/constants';
 import { DEMO_CONFIG } from '@/lib/demo';
@@ -131,6 +132,7 @@ export default function Dashboard() {
   const aiMenuRef = useRef<HTMLDivElement>(null);
   const [aiMenuPos, setAiMenuPos] = useState({ top: 0, left: 0 });
   const [showSummaries, setShowSummaries] = useState(false);
+  const [showLogSearch, setShowLogSearch] = useState(false);
   const insertAtCursorRef = useRef<((text: string) => void) | null>(null);
   const commitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isNarrowLayout, setIsNarrowLayout] = useState(false);
@@ -451,6 +453,14 @@ export default function Dashboard() {
             <Sparkles className="h-4 w-4" aria-hidden="true" />
           </button>
           <button
+            onClick={() => setShowLogSearch(true)}
+            className="rounded-lg px-2 py-1.5 text-sm text-muted-foreground transition hover:bg-accent hover:text-accent-foreground"
+            aria-label="Search logs"
+            title="Search logs"
+          >
+            <Search className="h-4 w-4" aria-hidden="true" />
+          </button>
+          <button
             onClick={() => setShowSummaries(true)}
             className="rounded-lg px-2 py-1.5 text-sm text-muted-foreground transition hover:bg-accent hover:text-accent-foreground"
             aria-label="Saved Summaries"
@@ -564,6 +574,12 @@ export default function Dashboard() {
             document.body,
           )
         : null}
+
+      <LogSearchModal
+        isOpen={showLogSearch}
+        onClose={() => setShowLogSearch(false)}
+        onNavigate={(d) => { setDate(d); setShowLogSearch(false); }}
+      />
 
       <AiModal
         isOpen={aiModalTab !== null}
