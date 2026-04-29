@@ -54,6 +54,7 @@ export default function AiModal({ isOpen, onClose, defaultTab, defaultDate, isDe
   const [progressMessage, setProgressMessage] = useState<string | null>(null);
   const [savingSearch, setSavingSearch] = useState(false);
   const [searchSaveMessage, setSearchSaveMessage] = useState<string | null>(null);
+  const [useKeywordPrefilter, setUseKeywordPrefilter] = useState(false);
 
   // Summarize pane state
   const [startDate, setStartDate] = useState(defaultDate);
@@ -184,6 +185,7 @@ export default function AiModal({ isOpen, onClose, defaultTab, defaultDate, isDe
           model: selectedModel,
           todayDate: todayISO(),
           offsetDays,
+          useKeywordPrefilter,
         }),
         signal: controller.signal,
       });
@@ -450,6 +452,23 @@ export default function AiModal({ isOpen, onClose, defaultTab, defaultDate, isDe
                   ))}
                 </select>
               </div>
+
+              {/* Keyword pre-filter option */}
+              <label className="flex items-start gap-3 rounded-xl border border-input bg-muted/30 px-4 py-3 cursor-pointer hover:bg-muted/50 transition-colors select-none">
+                <input
+                  type="checkbox"
+                  checked={useKeywordPrefilter}
+                  onChange={(e) => setUseKeywordPrefilter(e.target.checked)}
+                  disabled={searchLoading}
+                  className="mt-0.5 h-4 w-4 rounded border-input accent-primary shrink-0 cursor-pointer"
+                />
+                <div>
+                  <span className="text-sm font-medium text-foreground">⚡ Pre-filter with keyword search</span>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Uses the selected model to extract keywords, then narrows to matching days before AI reasoning — faster for most searches.
+                  </p>
+                </div>
+              </label>
 
               {/* Loading / Progress */}
               {searchLoading && (

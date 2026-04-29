@@ -5,6 +5,7 @@ import {
   loadLogsForRange,
   fetchGitHubContext,
   classifySearchQuery,
+  preFilterLogDates,
 } from '@/lib/search';
 import type { GitHubContextItem, SearchMode } from '@/lib/search';
 
@@ -489,6 +490,79 @@ async function searchRecentFirst(
   });
 }
 
+/**
+ * Keyword pre-filter search: extract keywords, text-search for candidate days,
+ * then run a single AI call on only those days. Falls back to normal classification
+ * if pre-filter yields no results.
+ */
+async function searchWithKeywordPrefilter(
+  query: string,
+  model: string,
+  todayDate: string,
+  today: Date,
+  offsetDays: number,
+  emit: Emit,
+  signal: AbortSignal,
+) {
+  emit({ type: 'progress', message: 'Extracting keywords…', searchMode: 'recent_first' });
+  console.log(`[search] keyword_prefilter: extracting keywords for query="${query}"`);
+
+  const candidateDates = await preFilterLogDates(query, model);
+  throwIfAborted(signal);
+
+  if (!candidateDates || candidateDates.length === 0) {
+    console.log('[search] keyword_prefilter: no candidate dates, falling back to normal search');
+    emit({ type: 'progress', message: 'No keyword matches found, falling back to full search…' });
+    const classification = await classifySearchQuery(query, todayDate, model);
+    throwIfAborted(signal);
+    switch (classification.mode) {
+      case 'exhaustive':
+        return searchExhaustive(query, model, todayDate, today, emit, signal);
+      case 'date_bounded': {
+        const startDate = classification.startDate ?? formatDate(new Date(today.getTime() - 14 * 86400000));
+        const endDate = classification.endDate ?? todayDate;
+        return searchDateBounded(query, model, todayDate, startDate, endDate, emit, signal);
+      }
+      default:
+        return searchRecentFirst(query, model, todayDate, today, offsetDays, emit, signal);
+    }
+  }
+
+  console.log(`[search] keyword_prefilter: ${candidateDates.length} candidate days found`);
+  emit({ type: 'progress', message: `Found ${candidateDates.length} candidate day${candidateDates.length !== 1 ? 's' : ''} via keyword match, searching with AI…`, daysSearched: candidateDates.length, searchMode: 'recent_first' });
+
+  // Load logs for only the candidate dates
+  const logs: string[] = [];
+  for (const date of candidateDates) {
+    const dayLogs = await loadLogsForRange(date, date);
+    logs.push(...dayLogs);
+  }
+  throwIfAborted(signal);
+
+  if (logs.length === 0) {
+    emit({ type: 'complete', answer: "I couldn't find any work logs for the matched dates.", daysSearched: candidateDates.length, exhausted: true, searchMode: 'recent_first' });
+    return;
+  }
+
+  const allUrls = await collectUrlsFromLogs(logs);
+  const githubContext = await fetchGitHubContext(Array.from(allUrls));
+  throwIfAborted(signal);
+
+  const systemPrompt = buildSystemPrompt(todayDate, 'exhaustive');
+  const searchWindow = `Keyword pre-filter: ${candidateDates.length} matched day${candidateDates.length !== 1 ? 's' : ''}`;
+  const userPrompt = buildUserPrompt(query, logs, githubContext, searchWindow);
+
+  const aiStart = Date.now();
+  const result = await callCopilot(systemPrompt, userPrompt, model, SEARCH_TIMEOUT_MS);
+  console.log(`[search] keyword_prefilter: AI call took ${Date.now() - aiStart}ms`);
+
+  const answer = isNeedMoreContext(result)
+    ? "I found days matching your keywords but couldn't find a specific answer to your question in them."
+    : sanitizeResponse(result);
+
+  emit({ type: 'complete', answer, daysSearched: candidateDates.length, exhausted: true, searchMode: 'recent_first' });
+}
+
 export async function POST(req: Request) {
   const t0 = Date.now();
 
@@ -499,8 +573,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
 
-  const { query, model, todayDate, offsetDays = 0 } = body;
-  console.log(`[search] query="${query}" model=${model} offsetDays=${offsetDays}`);
+  const { query, model, todayDate, offsetDays = 0, useKeywordPrefilter = false } = body;
+  console.log(`[search] query="${query}" model=${model} offsetDays=${offsetDays} useKeywordPrefilter=${useKeywordPrefilter}`);
 
   if (!query || !todayDate) {
     return NextResponse.json(
@@ -512,7 +586,10 @@ export async function POST(req: Request) {
   const today = new Date(todayDate + 'T12:00:00');
 
   return createSearchStream(async (emit, signal) => {
-    emit({ type: 'progress', message: 'Classifying query...' });
+    if (useKeywordPrefilter) {
+      await searchWithKeywordPrefilter(query, model, todayDate, today, offsetDays, emit, signal);
+    } else {
+      emit({ type: 'progress', message: 'Classifying query...' });
     const classifyStart = Date.now();
     const classification = await classifySearchQuery(query, todayDate);
     throwIfAborted(signal);
@@ -545,6 +622,7 @@ export async function POST(req: Request) {
       default:
         await searchRecentFirst(query, model, todayDate, today, offsetDays, emit, signal);
         break;
+    }
     }
 
     console.log(`[search] completed in ${Date.now() - t0}ms`);
