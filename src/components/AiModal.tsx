@@ -53,6 +53,7 @@ export default function AiModal({ isOpen, onClose, defaultDate, isDemo = false }
   const [selectedPromptId, setSelectedPromptId] = useState('daily-standup');
   const [customPrompt, setCustomPrompt] = useState('');
   const [summaryLoading, setSummaryLoading] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [summaryResult, setSummaryResult] = useState<string | null>(null);
@@ -372,6 +373,29 @@ export default function AiModal({ isOpen, onClose, defaultDate, isDemo = false }
     URL.revokeObjectURL(url);
   };
 
+  const exportRawLogs = async () => {
+    setExportLoading(true);
+    try {
+      const res = await fetch(`/api/combine-logs?start=${encodeURIComponent(startDate)}&end=${encodeURIComponent(endDate)}`);
+      if (!res.ok) throw new Error('Failed to export logs');
+      const data = await res.json();
+      const blob = new Blob([data.content], { type: 'text/markdown' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const timestamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\..+/, '').replace('T', 'T');
+      a.download = `work-logs-${startDate}-to-${endDate}-${timestamp}.md`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch {
+      // silently fail — no error state needed for a simple download
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4" onMouseDown={(e) => { if (panelRef.current && !panelRef.current.contains(e.target as Node)) handleClose(); }}>
       <div ref={panelRef} role="dialog" aria-modal="true" aria-labelledby="ai-modal-title" className="w-full max-w-2xl rounded-2xl bg-popover shadow-xl ring-1 ring-border max-h-[90vh] flex flex-col overflow-hidden">
@@ -561,6 +585,14 @@ export default function AiModal({ isOpen, onClose, defaultDate, isDemo = false }
 
         <div className="border-t border-border px-6 py-4 flex justify-between items-center bg-popover sticky bottom-0 z-10">
           <div className="flex gap-2">
+            <button
+              onClick={exportRawLogs}
+              disabled={exportLoading || isDemo}
+              title="Downloads all work log entries between the selected dates as a single markdown file."
+              className="rounded-xl border border-border px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {exportLoading ? 'Exporting...' : 'Export Raw Logs'}
+            </button>
             {summaryResult && (
               <>
                 <button
