@@ -304,41 +304,33 @@ export default function AiModal({ isOpen, onClose, defaultDate, isDemo = false }
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wider">Template</label>
-                  {promptsLoading && prompts.length === 0 ? (
-                    <div className="rounded-xl border border-input bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
-                      Loading templates...
-                    </div>
-                  ) : (
-                    <div className="flex flex-wrap gap-2">
-                      {prompts.map((prompt) => (
-                        <div key={prompt.id} className="relative group inline-flex">
-                          <button
-                            type="button"
-                            onClick={() => handlePromptSelect(prompt)}
-                            className={[
-                              'rounded-full border px-3 py-1 text-xs font-medium transition-colors',
-                              selectedPromptId === prompt.id
-                                ? 'bg-primary/10 border-primary/30 text-primary'
-                                : 'border-border text-muted-foreground hover:text-foreground hover:bg-muted',
-                            ].join(' ')}
-                          >
-                            {prompt.label}
-                          </button>
-                          {!prompt.is_builtin && (
-                            <button
-                              type="button"
-                              onClick={() => void handleDeletePrompt(prompt.id)}
-                              className="absolute -top-1 -right-1 hidden group-hover:flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[10px] leading-none"
-                              aria-label={`Delete ${prompt.label}`}
-                            >
-                              ×
-                            </button>
-                          )}
-                        </div>
+                  <label htmlFor="ai-summary-template" className="block text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wider">Template</label>
+                  <div className="flex items-center gap-2">
+                    <select
+                      id="ai-summary-template"
+                      value={selectedPromptId}
+                      onChange={(e) => {
+                        const p = prompts.find((pr) => pr.id === e.target.value);
+                        if (p) handlePromptSelect(p);
+                      }}
+                      disabled={promptsLoading && prompts.length === 0}
+                      className="flex-1 rounded-xl border border-input bg-muted/50 px-3 py-2 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-ring/20 transition-all cursor-pointer"
+                    >
+                      {prompts.map((p) => (
+                        <option key={p.id} value={p.id}>{p.label}</option>
                       ))}
-                    </div>
-                  )}
+                    </select>
+                    {selectedPrompt && !selectedPrompt.is_builtin && (
+                      <button
+                        type="button"
+                        onClick={() => void handleDeletePrompt(selectedPrompt.id)}
+                        className="rounded-lg px-2 py-1.5 text-xs text-destructive hover:bg-destructive/10 transition-colors"
+                        aria-label={`Delete ${selectedPrompt.label}`}
+                      >
+                        Delete
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <div>
                   <label htmlFor="ai-summary-model" className="block text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wider">AI Model</label>
@@ -367,35 +359,37 @@ export default function AiModal({ isOpen, onClose, defaultDate, isDemo = false }
                   placeholder="Enter custom instructions for the summary..."
                 />
                 <div className="flex items-center gap-2 mt-1">
-                  {savingPrompt ? (
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="text"
-                        value={newPromptLabel}
-                        onChange={(e) => setNewPromptLabel(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') void handleSavePrompt();
-                          if (e.key === 'Escape') setSavingPrompt(false);
+                  {customPrompt !== (selectedPrompt?.value ?? '') && (
+                    savingPrompt ? (
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={newPromptLabel}
+                          onChange={(e) => setNewPromptLabel(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') void handleSavePrompt();
+                            if (e.key === 'Escape') setSavingPrompt(false);
+                          }}
+                          placeholder="Template name…"
+                          className="rounded-lg border border-input bg-muted/50 px-2 py-1 text-xs text-foreground outline-none focus:border-primary"
+                          autoFocus
+                        />
+                        <button onClick={() => void handleSavePrompt()} className="text-xs text-primary hover:underline">Save</button>
+                        <button onClick={() => setSavingPrompt(false)} className="text-xs text-muted-foreground hover:underline">Cancel</button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setNewPromptLabel('');
+                          setPromptSaveError(null);
+                          setSavingPrompt(true);
                         }}
-                        placeholder="Template name…"
-                        className="rounded-lg border border-input bg-muted/50 px-2 py-1 text-xs text-foreground outline-none focus:border-primary"
-                        autoFocus
-                      />
-                      <button onClick={() => void handleSavePrompt()} className="text-xs text-primary hover:underline">Save</button>
-                      <button onClick={() => setSavingPrompt(false)} className="text-xs text-muted-foreground hover:underline">Cancel</button>
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setNewPromptLabel('');
-                        setPromptSaveError(null);
-                        setSavingPrompt(true);
-                      }}
-                      className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      + Save as template
-                    </button>
+                        className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        + Save as template
+                      </button>
+                    )
                   )}
                   {promptSaveError && <span className="text-xs text-destructive">{promptSaveError}</span>}
                 </div>
