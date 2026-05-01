@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { GitMerge, CheckCircle, MessageSquare } from "lucide-react";
+import { GitMerge, CheckCircle, MessageSquare, Copy, Check } from "lucide-react";
 import { DEMO_PRS } from "@/lib/demo";
 import { useVisibilityPolling } from "@/hooks/useVisibilityPolling";
 import { isCopilotLogin } from "@/lib/constants";
@@ -52,8 +52,17 @@ export default function MyPRs({
 }) {
   const [prs, setPrs] = useState<PullRequest[]>(_prCache ?? []);
   const [loading, setLoading] = useState(_prCache === null);
+  const [copiedBranch, setCopiedBranch] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const isDemoRef = useRef(isDemo);
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleCopyBranch = useCallback((branch: string) => {
+    navigator.clipboard.writeText(branch).catch(() => {});
+    setCopiedBranch(branch);
+    if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+    copyTimerRef.current = setTimeout(() => setCopiedBranch(null), 2000);
+  }, []);
 
   // Keep isDemo ref in sync so refresh can stay stable (empty deps)
   isDemoRef.current = isDemo;
@@ -100,6 +109,7 @@ export default function MyPRs({
   useEffect(
     () => () => {
       abortRef.current?.abort();
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
     },
     [],
   );
@@ -266,12 +276,17 @@ export default function MyPRs({
                         </span>
                       )}
                       {pr.branchName && (
-                        <span
-                          className="rounded-full bg-secondary px-1.5 py-0.5 text-[10px] font-semibold font-mono text-muted-foreground truncate max-w-[320px] hover:max-w-none hover:z-10 hover:ring-1 hover:ring-ring transition-all"
-                          title={pr.branchName}
+                        <button
+                          onClick={() => handleCopyBranch(pr.branchName)}
+                          title={copiedBranch === pr.branchName ? 'Copied!' : `Copy branch name: ${pr.branchName}`}
+                          className="group inline-flex items-center gap-1 rounded-full bg-secondary px-1.5 py-0.5 text-[10px] font-semibold font-mono text-muted-foreground truncate max-w-[320px] hover:max-w-none hover:z-10 hover:ring-1 hover:ring-ring hover:text-foreground transition-all cursor-copy"
                         >
-                          {pr.branchName}
-                        </span>
+                          <span className="truncate">{pr.branchName}</span>
+                          {copiedBranch === pr.branchName
+                            ? <Check className="h-2.5 w-2.5 shrink-0 text-success" aria-hidden="true" />
+                            : <Copy className="h-2.5 w-2.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" aria-hidden="true" />
+                          }
+                        </button>
                       )}
                       <span className="rounded-full bg-success/10 px-1.5 py-0.5 text-[10px] font-semibold text-success">
                         +{pr.additions}
