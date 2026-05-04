@@ -2,11 +2,38 @@
 
 All notable changes to git-stuff-done are documented here.
 
+## 2026-05-01
+
+### Added
+
+- **Branch name copy** — clicking the branch pill in My PRs copies the branch name to clipboard; a copy icon appears on hover and swaps to a green checkmark for 2 seconds after copying
+
+---
+
+## 2026-04-29
+
+### Added
+
+- **Fuzzy log text search** — new Search tab in the AI modal lets you search across all work log files using keyword matching, with results highlighted inline
+- **AI search keyword pre-filter** — AI search mode can optionally narrow logs by keyword before sending them to the AI model, reducing token usage on large corpora
+- **Unified search modal** — text search, AI search, and AI+keywords modes combined into a single interface; previous separate modals merged
+- **Saveable custom prompts** — summary prompts can be saved, renamed, and deleted from a new Prompts tab in the AI modal; built-in prompts (Daily Standup, Weekly Report, etc.) are always available
+- **Export Raw Logs** — new button in the AI modal footer downloads all work log entries for the selected date range as a single combined markdown file (inline base64 images stripped for clean output)
+- **PR state badge on review notifications** — Notifications panel now shows a PR state badge on review-requested notifications
+
+### Fixed
+
+- AI modal footer buttons no longer crowd when a summary result is present — Copy / Download .md / Save & Commit appear in a dedicated row above the main action buttons
+- Summary generation timeout increased to 5 minutes to handle large date ranges
+
+---
+
 ## 2026-04-28
 
 ### Added
 
 - My PRs now shows explicit review-decision indicators for approved and changes-requested states
+- Reference pills (linked PRs on issues, PR metadata) use a unified `ReferencePill` component for consistent styling across My PRs and My Issues
 
 ## 2026-04-27
 
