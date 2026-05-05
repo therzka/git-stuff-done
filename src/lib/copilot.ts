@@ -12,7 +12,7 @@ function applyLinkification(
 ): string {
   let result = markdown;
   linkMap.forEach((info, url) => {
-    const label = `${info.title} (${info.owner}/${info.repo}#${info.number})`;
+    const label = `${info.title.replace(/`/g, '')} (${info.owner}/${info.repo}#${info.number})`;
     const escaped = url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     // Replace <url> autolinks (angle-bracket wrapped)
     result = result.replace(new RegExp(`<${escaped}>`, 'g'), `[${label}](${url})`);
